@@ -36,9 +36,9 @@ const startServer = async () => {
   try {
     await sequelize.authenticate();
     await sequelize.sync();
-    console.log("Conexión a la base de datos establecida");
+    console.log("✅ Conexión a la base de datos establecida");
     app.listen(port, () => {
-      console.log(`Servidor ejecutándose en http://localhost:${port}`);
+      console.log(`🚀 Servidor ejecutándose en http://localhost:${port}`);
     });
   } catch (error) {
     console.error("No se pudo conectar a la base de datos:", error);
