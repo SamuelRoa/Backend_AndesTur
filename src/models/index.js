@@ -1,0 +1,14 @@
+import "./customers.models.js";
+import "./destinations.models.js";
+import "./municipality.models.js";
+import "./packages_destinations.models.js";
+import "./packages.models.js";
+import "./payment_detail.models.js";
+import "./payment_header.models.js";
+import "./reservations.models.js";
+import "./roles.models.js";
+import "./staff.models.js";
+import "./staff_package.models.js";
+import "./state.models.js";
+import "./users.models.js";
+import "./vehicles.models.js";

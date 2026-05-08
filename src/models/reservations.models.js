@@ -1,0 +1,41 @@
+import { DataTypes } from "sequelize";
+import sequelize from "../config/db.js";
+
+export const reservationsModel = sequelize.define(
+  "Reservation",
+  {
+    id_reservation: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    id_package: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    id_customer: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    reservation_date: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+    pay_state: {
+      type: DataTypes.ENUM(
+        "pending",
+        "partial",
+        "paid",
+        "cancelled",
+        "expired",
+      ),
+      defaultValue: "pending",
+    },
+  },
+  {
+    tableName: "reservations",
+    timestamps: true,
+    createdAt: "created_at",
+    updatedAt: "updated_at",
+  },
+);
