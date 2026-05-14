@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import routes from "./routes.js";
 import sequelize from "./config/db.js";
 import "./models/index.js";
+import { errorHandler, notFoundHandler } from "./middleware/index.js";
 
 dotenv.config();
 
@@ -19,18 +20,11 @@ app.use(morgan("dev"));
 
 app.use("/api", routes);
 
-app.use((req, res) => {
-  res.status(404).json({ success: false, message: "Ruta no encontrada" });
-});
+// Manejo de rutas no encontradas
+app.use(notFoundHandler);
 
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({
-    success: false,
-    message: "Error interno del servidor",
-    error: err.message,
-  });
-});
+// Manejo centralizado de errores (debe ir al final)
+app.use(errorHandler);
 
 const startServer = async () => {
   try {

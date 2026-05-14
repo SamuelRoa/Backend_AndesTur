@@ -1,4 +1,5 @@
 import express from "express";
+import authRoutes from "./auth.routes.js";
 import usersRoutes from "./users.routes.js";
 import packagesRoutes from "./packages.routes.js";
 import destinationsRoutes from "./destinations.routes.js";
@@ -18,6 +19,7 @@ import { getHealth } from "../controllers/health.controller.js";
 const router = express.Router();
 
 router.get("/", getHealth);
+router.use("/auth", authRoutes);
 router.use("/users", usersRoutes);
 router.use("/packages", packagesRoutes);
 router.use("/destinations", destinationsRoutes);
