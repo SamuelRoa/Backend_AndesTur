@@ -3,9 +3,9 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
-import routes from "./routes.js";
 import sequelize from "./config/db.js";
 import "./models/index.js";
+import routes from "./routes.js";
 import { errorHandler, notFoundHandler } from "./middleware/index.js";
 
 dotenv.config();

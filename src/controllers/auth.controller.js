@@ -1,6 +1,7 @@
+import bcrypt from "bcrypt";
 import { usersModel } from "../models/users.models.js";
 import { rolesModel } from "../models/roles.models.js";
-import { generateToken, verifyToken } from "../middleware/auth.middleware.js";
+import { generateToken } from "../middleware/auth.middleware.js";
 import { validateData } from "../middleware/validation.middleware.js";
 import { AppError } from "../middleware/errorHandler.middleware.js";
 import { loginSchema, createUserSchema } from "../validations/schemas.js";
@@ -40,11 +41,10 @@ export const register = async (req, res) => {
       });
     }
 
-    // Crear usuario (en un proyecto real, hasearías la contraseña)
     const newUser = await usersModel.create({
       username,
       email,
-      password, // TODO: Usar bcrypt para hashear
+      password,
       id_role,
       state,
     });
@@ -106,8 +106,8 @@ export const login = async (req, res) => {
       });
     }
 
-    // Verificar contraseña (en un proyecto real, usarías bcrypt.compare)
-    if (user.password !== password) {
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
         message: "Credenciales inválidas",

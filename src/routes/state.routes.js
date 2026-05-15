@@ -6,13 +6,15 @@ import {
   updateState,
   deleteState,
 } from "../controllers/state.controller.js";
+import { validateSchema } from "../middleware/validation.middleware.js";
+import { createStateSchema, updateStateSchema } from "../validations/schemas.js";
 
 const router = express.Router();
 
 router.get("/", getAllStates);
 router.get("/:id", getStateById);
-router.post("/", createState);
-router.put("/:id", updateState);
+router.post("/", validateSchema(createStateSchema), createState);
+router.put("/:id", validateSchema(updateStateSchema), updateState);
 router.delete("/:id", deleteState);
 
 export default router;

@@ -15,8 +15,7 @@ export const validateSchema = (schema, source = "body") => {
       const dataToValidate = req[source];
       const validated = schema.parse(dataToValidate);
 
-      // Adjuntar datos validados para usar en el controlador
-      req.bodyValidated = validated;
+      req.body = validated;
 
       next();
     } catch (error) {
