@@ -5,6 +5,8 @@ import { generateToken } from "../middleware/auth.middleware.js";
 import { validateData } from "../middleware/validation.middleware.js";
 import { AppError } from "../middleware/errorHandler.middleware.js";
 import { loginSchema, createUserSchema } from "../validations/schemas.js";
+import { z } from "zod";
+import { passwordSchema } from "../validations/schemas.js";
 
 // ==================== REGISTRO ====================
 export const register = async (req, res) => {
@@ -96,7 +98,6 @@ export const login = async (req, res) => {
     // Buscar usuario
     const user = await usersModel.findOne({
       where: { email },
-      include: [{ model: rolesModel, as: "role", attributes: ["type"] }],
     });
 
     if (!user) {
@@ -122,12 +123,16 @@ export const login = async (req, res) => {
       });
     }
 
+    // Cargar rol del usuario desde la tabla roles
+    const userRole = await rolesModel.findByPk(user.id_role);
+    const roleType = userRole?.type || "user";
+
     // Generar token
     const token = generateToken({
       id_user: user.id_user,
       email: user.email,
       username: user.username,
-      role: user.role?.type || "user",
+      role: roleType,
     });
 
     res.json({
@@ -172,7 +177,6 @@ export const getProfile = async (req, res) => {
   try {
     const user = await usersModel.findByPk(req.user.id_user, {
       attributes: { exclude: ["password"] },
-      include: [{ model: rolesModel, as: "role" }],
     });
 
     if (!user) {
@@ -182,15 +186,77 @@ export const getProfile = async (req, res) => {
       });
     }
 
+    const userRole = await rolesModel.findByPk(user.id_role);
+
     res.json({
       success: true,
-      data: user,
+      data: {
+        ...user.toJSON(),
+        role: userRole
+          ? { id_role: userRole.id_role, type: userRole.type }
+          : null,
+      },
     });
   } catch (error) {
     console.error("Error al obtener perfil:", error.message);
     res.status(500).json({
       success: false,
       message: "Error al obtener perfil",
+      error: error.message,
+    });
+  }
+};
+
+// ==================== CAMBIAR CONTRASEÑA ====================
+export const changePassword = async (req, res) => {
+  try {
+    const changePasswordSchema = z.object({
+      current_password: z.string().min(1, "La contraseña actual es requerida"),
+      new_password: passwordSchema,
+    });
+
+    const validation = validateData(changePasswordSchema, req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Error en validación",
+        errors: validation.errors,
+      });
+    }
+
+    const { current_password, new_password } = validation.data;
+
+    // Buscar usuario con contraseña actual
+    const user = await usersModel.findByPk(req.user.id_user);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Usuario no encontrado",
+      });
+    }
+
+    // Verificar contraseña actual
+    const isCurrentPasswordValid = await bcrypt.compare(current_password, user.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "La contraseña actual es incorrecta",
+      });
+    }
+
+    // Actualizar contraseña (el hook beforeUpdate en el modelo la hasheará automáticamente)
+    user.password = new_password;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Contraseña actualizada exitosamente",
+    });
+  } catch (error) {
+    console.error("Error al cambiar contraseña:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error al cambiar contraseña",
       error: error.message,
     });
   }

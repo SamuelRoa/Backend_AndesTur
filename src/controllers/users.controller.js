@@ -2,7 +2,9 @@ import { usersModel } from "../models/users.models.js";
 
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await usersModel.findAll();
+    const users = await usersModel.findAll({
+      attributes: { exclude: ["password"] },
+    });
     res.json({ success: true, data: users });
   } catch (error) {
     res

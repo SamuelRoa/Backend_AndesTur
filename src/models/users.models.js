@@ -2,6 +2,7 @@ import { DataTypes } from "sequelize";
 import bcrypt from "bcrypt";
 import sequelize from "../config/db.js";
 
+
 export const usersModel = sequelize.define(
   "User",
   {
@@ -31,6 +32,10 @@ export const usersModel = sequelize.define(
     id_role: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      references: {
+        model: "role",
+        key: "id_role",
+      },
     },
   },
   {
@@ -54,3 +59,5 @@ export const usersModel = sequelize.define(
     },
   },
 );
+
+
