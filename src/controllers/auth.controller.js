@@ -313,14 +313,35 @@ export const recoverPassword = async (req, res) => {
       user.password = randomPassword;
       await user.save();
 
-      // Configurar transporte
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      });
+      // Validar configuración SMTP mínima
+      if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+        console.error("Falta configuración de correo: EMAIL_USER o EMAIL_PASS no está definida");
+        return res.status(500).json({
+          success: false,
+          message: "Error al enviar el correo de recuperación (falta configuración de correo)",
+        });
+      }
+
+      // Configurar transporte SMTP flexible
+      const transporterConfig = process.env.SMTP_HOST
+        ? {
+            host: process.env.SMTP_HOST,
+            port: Number(process.env.SMTP_PORT) || 465,
+            secure: process.env.SMTP_SECURE === "true",
+            auth: {
+              user: process.env.EMAIL_USER,
+              pass: process.env.EMAIL_PASS,
+            },
+          }
+        : {
+            service: process.env.EMAIL_SERVICE || "gmail",
+            auth: {
+              user: process.env.EMAIL_USER,
+              pass: process.env.EMAIL_PASS,
+            },
+          };
+
+      const transporter = nodemailer.createTransport(transporterConfig);
 
       const mailOptions = {
         from: process.env.EMAIL_USER,
@@ -333,9 +354,13 @@ export const recoverPassword = async (req, res) => {
          await transporter.sendMail(mailOptions);
       } catch (mailError) {
          console.error("Error enviando correo de recuperación:", mailError);
+         const responseMessage = process.env.NODE_ENV === "development"
+           ? `Error al enviar el correo de recuperación: ${mailError.message}`
+           : "Error al enviar el correo de recuperación (revisa la configuración SMTP)";
+
          return res.status(500).json({
            success: false,
-           message: "Error al enviar el correo de recuperación (revisa la configuración SMTP)",
+           message: responseMessage,
          });
       }
     }

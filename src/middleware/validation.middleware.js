@@ -20,8 +20,9 @@ export const validateSchema = (schema, source = "body") => {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const formattedErrors = error.errors.map((err) => ({
-          field: err.path.join("."),
+        const issues = error.errors ?? error.issues ?? [];
+        const formattedErrors = issues.map((err) => ({
+          field: Array.isArray(err.path) ? err.path.join(".") : String(err.path || ""),
           message: err.message,
           code: err.code,
         }));
@@ -50,8 +51,9 @@ export const validateData = (schema, data) => {
     return { success: true, data: validated };
   } catch (error) {
     if (error instanceof ZodError) {
-      const formattedErrors = error.errors.map((err) => ({
-        field: err.path.join("."),
+      const issues = error.errors ?? error.issues ?? [];
+      const formattedErrors = issues.map((err) => ({
+        field: Array.isArray(err.path) ? err.path.join(".") : String(err.path || ""),
         message: err.message,
         code: err.code,
       }));
