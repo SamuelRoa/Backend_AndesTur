@@ -7,6 +7,8 @@ import { AppError } from "../middleware/errorHandler.middleware.js";
 import { loginSchema, createUserSchema } from "../validations/schemas.js";
 import { z } from "zod";
 import { passwordSchema } from "../validations/schemas.js";
+import nodemailer from "nodemailer";
+import crypto from "crypto";
 
 // ==================== REGISTRO ====================
 export const register = async (req, res) => {
@@ -273,6 +275,80 @@ export const changePassword = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error al cambiar contraseña",
+      error: error.message,
+    });
+  }
+};
+
+// ==================== RECUPERAR CONTRASEÑA ====================
+export const recoverPassword = async (req, res) => {
+  try {
+    const emailValidationSchema = z.object({
+      email: z.string().email("Email inválido").toLowerCase().trim()
+    });
+
+    const validation = validateData(emailValidationSchema, req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Error en validación",
+        errors: validation.errors,
+      });
+    }
+
+    const { email } = validation.data;
+
+    // Buscar usuario
+    const user = await usersModel.findOne({
+      where: { email },
+    });
+
+    // Siempre devolvemos el mismo mensaje por seguridad
+    // Pero si el usuario existe, procesamos la recuperación
+    if (user) {
+      // Generar contraseña aleatoria (1 mayúscula, 1 minúscula, 1 número, 1 especial, 8+ caracteres)
+      const randomPassword = "A" + crypto.randomBytes(4).toString("hex") + "1!b";
+      
+      // Actualizar contraseña
+      user.password = randomPassword;
+      await user.save();
+
+      // Configurar transporte
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
+
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: user.email,
+        subject: "Recuperación de contraseña - AndesTur",
+        text: `Hola ${user.username},\n\nTu nueva contraseña es: ${randomPassword}\n\nPor favor, inicia sesión con esta nueva contraseña y cámbiala lo antes posible desde tu perfil.\n\nSaludos,\nEquipo de AndesTur`,
+      };
+
+      try {
+         await transporter.sendMail(mailOptions);
+      } catch (mailError) {
+         console.error("Error enviando correo de recuperación:", mailError);
+         return res.status(500).json({
+           success: false,
+           message: "Error al enviar el correo de recuperación (revisa la configuración SMTP)",
+         });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: "Si el correo está registrado, se han enviado las instrucciones para recuperar la contraseña.",
+    });
+  } catch (error) {
+    console.error("Error en recuperación de contraseña:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error en el servidor al recuperar contraseña",
       error: error.message,
     });
   }
