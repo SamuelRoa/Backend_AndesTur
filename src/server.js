@@ -7,6 +7,7 @@ import sequelize from "./config/db.js";
 import "./models/index.js";
 import routes from "./routes.js";
 import { errorHandler, notFoundHandler } from "./middleware/index.js";
+import { swaggerDocs } from "./swagger.js";
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
 
+swaggerDocs(app);
 app.use("/api", routes);
 
 // Manejo de rutas no encontradas

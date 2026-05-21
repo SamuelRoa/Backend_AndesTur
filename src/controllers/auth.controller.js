@@ -34,20 +34,33 @@ export const register = async (req, res) => {
       });
     }
 
-    // Verificar que el rol existe
-    const role = await rolesModel.findByPk(id_role);
-    if (!role) {
-      return res.status(404).json({
-        success: false,
-        message: "Rol no encontrado",
-      });
+    // Si no se envía id_role, asignar el rol 'user' por defecto
+    let role = null;
+    let roleIdToUse = id_role;
+    if (!roleIdToUse) {
+      role = await rolesModel.findOne({ where: { type: "user" } });
+      if (!role) {
+        // Crear rol 'user' si no existe
+        role = await rolesModel.create({
+          type: "user",
+          description: "Usuario por defecto",
+        });
+      }
+      roleIdToUse = role.id_role;
+    } else {
+      role = await rolesModel.findByPk(roleIdToUse);
+      if (!role) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Rol no encontrado" });
+      }
     }
 
     const newUser = await usersModel.create({
       username,
       email,
       password,
-      id_role,
+      id_role: roleIdToUse,
       state,
     });
 
@@ -236,7 +249,10 @@ export const changePassword = async (req, res) => {
     }
 
     // Verificar contraseña actual
-    const isCurrentPasswordValid = await bcrypt.compare(current_password, user.password);
+    const isCurrentPasswordValid = await bcrypt.compare(
+      current_password,
+      user.password,
+    );
     if (!isCurrentPasswordValid) {
       return res.status(401).json({
         success: false,

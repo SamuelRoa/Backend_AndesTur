@@ -59,13 +59,17 @@ export const decodeToken = (token) => {
  */
 export const authenticateToken = (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
+    const authHeader = req.headers.authorization || req.headers.Authorization;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!authHeader) {
       throw new AppError("Token no proporcionado", 401);
     }
 
-    const token = authHeader.substring(7); // Remover "Bearer "
+    const token = authHeader.replace(/^(Bearer|bearer)\s+/, "").trim();
+    if (!token) {
+      throw new AppError("Token no proporcionado", 401);
+    }
+
     const result = verifyToken(token);
 
     if (!result.success) {
