@@ -315,3 +315,10 @@ export const createStaffPackageSchema = z.object({
 });
 
 export const updateStaffPackageSchema = createStaffPackageSchema.partial();
+
+// === HEALTH ===
+export const healthSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  environment: z.string(),
+});

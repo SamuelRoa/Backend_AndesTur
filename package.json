@@ -3,7 +3,9 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "seed": "node src/seed.js"
+    "seed": "node src/seed.js",
+    "test": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --runInBand --detectOpenHandles",
+    "send-report": "node src/scripts/sendWeeklyReport.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -14,6 +16,8 @@
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.1",
     "nodemailer": "^8.0.7",
+    "node-cron": "^3.0.2",
+    "pdfkit": "^0.13.0",
     "pg": "^8.20.0",
     "sequelize": "^6.34.0",
     "swagger-jsdoc": "^6.2.8",
@@ -21,6 +25,16 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "jest": "^29.6.1",
+    "supertest": "^6.3.3",
+    "cross-env": "^7.0.3"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/src/tests/**/*.test.js"
+    ],
+    "transform": {}
   }
 }

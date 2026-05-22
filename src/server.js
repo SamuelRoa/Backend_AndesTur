@@ -30,16 +30,30 @@ app.use(errorHandler);
 
 const startServer = async () => {
   try {
-    await sequelize.authenticate();
-    await sequelize.sync();
-    console.log("✅ Conexión a la base de datos establecida");
-    app.listen(port, () => {
-      console.log(`🚀 Servidor ejecutándose en http://localhost:${port}`);
-    });
+    if (process.env.NODE_ENV !== "test") {
+      await sequelize.authenticate();
+      await sequelize.sync();
+      console.log("✅ Conexión a la base de datos establecida");
+      app.listen(port, () => {
+        console.log(`🚀 Servidor ejecutándose en http://localhost:${port}`);
+      });
+
+    // Iniciar tareas programadas (reportes semanal)
+    try {
+      const { startWeeklyReportTask } = await import('./tasks/weeklyReport.task.js');
+      startWeeklyReportTask();
+    } catch (err) {
+      console.error('No se pudo iniciar tareas programadas:', err.message);
+    }
+    }
   } catch (error) {
     console.error("No se pudo conectar a la base de datos:", error);
     process.exit(1);
   }
 };
 
-startServer();
+if (process.env.NODE_ENV !== "test") {
+  startServer();
+}
+
+export default app;
