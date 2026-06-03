@@ -26,7 +26,6 @@ export const customersModel = sequelize.define(
     },
     email: {
       type: DataTypes.STRING(100),
-      unique: true,
     },
   },
   {

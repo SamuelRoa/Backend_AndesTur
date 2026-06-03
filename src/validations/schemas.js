@@ -322,3 +322,17 @@ export const healthSchema = z.object({
   message: z.string(),
   environment: z.string(),
 });
+
+// === PRE-RESERVATIONS (Website) ===
+export const preReservationSchema = z.object({
+  dni: dniSchema,
+  name: nameSchema,
+  lastname: z
+    .string()
+    .max(100, "Apellido no puede exceder 100 caracteres")
+    .optional(),
+  phone_number: phoneSchema,
+  email: emailSchema,
+  id_package: idSchema,
+});
+

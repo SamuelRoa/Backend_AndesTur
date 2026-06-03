@@ -1,4 +1,10 @@
 import { reservationsModel } from "../models/reservations.models.js";
+import { customersModel } from "../models/customers.models.js";
+import { packagesModel } from "../models/packages.models.js";
+import {
+  sendAdminPreReservationEmail,
+  sendCustomerValidationEmail,
+} from "../services/email.service.js";
 
 export const getAllReservations = async (req, res) => {
   try {
@@ -56,6 +62,21 @@ export const createReservation = async (req, res) => {
 export const updateReservation = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Obtener la reserva actual incluyendo cliente y paquete antes de actualizar
+    const reservationBefore = await reservationsModel.findByPk(id, {
+      include: [
+        { model: customersModel },
+        { model: packagesModel }
+      ]
+    });
+
+    if (!reservationBefore) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Reservación no encontrada" });
+    }
+
     const [updated] = await reservationsModel.update(req.body, {
       where: { id_reservation: id },
     });
@@ -66,7 +87,30 @@ export const updateReservation = async (req, res) => {
         .json({ success: false, message: "Reservación no encontrada" });
     }
 
-    const updatedReservation = await reservationsModel.findByPk(id);
+    // Cargar la reserva actualizada con sus asociaciones
+    const updatedReservation = await reservationsModel.findByPk(id, {
+      include: [
+        { model: customersModel },
+        { model: packagesModel }
+      ]
+    });
+
+    // Enviar correo si el estado cambia a 'paid'
+    if (
+      req.body.pay_state === "paid" &&
+      reservationBefore.pay_state !== "paid" &&
+      updatedReservation.Customer &&
+      updatedReservation.Customer.email
+    ) {
+      sendCustomerValidationEmail(
+        updatedReservation.Customer,
+        updatedReservation,
+        updatedReservation.Package
+      ).catch((err) => {
+        console.error("Error al enviar correo de validación al cliente:", err.message);
+      });
+    }
+
     res.json({ success: true, data: updatedReservation });
   } catch (error) {
     res
@@ -101,5 +145,75 @@ export const deleteReservation = async (req, res) => {
         message: "Error eliminando reservación",
         error: error.message,
       });
+  }
+};
+
+export const createPreReservation = async (req, res) => {
+  try {
+    const { dni, name, lastname, phone_number, email, id_package } = req.body;
+
+    // 1. Verificar si el paquete existe
+    const packageData = await packagesModel.findByPk(id_package);
+    if (!packageData) {
+      return res
+        .status(404)
+        .json({ success: false, message: "El paquete de viaje seleccionado no existe" });
+    }
+
+    // 2. Buscar o crear/actualizar el cliente por DNI
+    let customer = await customersModel.findOne({ where: { dni } });
+    if (customer) {
+      // Actualizar datos del cliente
+      await customer.update({ name, lastname, phone_number, email });
+    } else {
+      try {
+        customer = await customersModel.create({
+          dni,
+          name,
+          lastname,
+          phone_number,
+          email,
+        });
+      } catch (createErr) {
+        // Si falla por unique constraint (email duplicado), buscar por email y actualizar
+        if (createErr.name === "SequelizeUniqueConstraintError") {
+          customer = await customersModel.findOne({ where: { email } });
+          if (customer) {
+            await customer.update({ dni, name, lastname, phone_number });
+          } else {
+            throw createErr;
+          }
+        } else {
+          throw createErr;
+        }
+      }
+    }
+
+    // 3. Crear la reserva en estado 'pending'
+    const reservation = await reservationsModel.create({
+      id_package,
+      id_customer: customer.id_customer,
+      pay_state: "pending",
+    });
+
+    // 4. Enviar notificación por correo al administrador asíncronamente
+    sendAdminPreReservationEmail(customer, reservation, packageData).catch((err) => {
+      console.error("Error al enviar correo de pre-reserva al administrador:", err.message);
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Pre-reserva registrada con éxito",
+      data: {
+        reservation,
+        customer,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error procesando la pre-reserva",
+      error: error.message,
+    });
   }
 };
