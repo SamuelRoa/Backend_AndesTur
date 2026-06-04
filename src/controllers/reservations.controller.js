@@ -194,6 +194,7 @@ export const createPreReservation = async (req, res) => {
       id_package,
       id_customer: customer.id_customer,
       pay_state: "pending",
+      reservation_date: new Date(),
     });
 
     // 4. Enviar notificación por correo al administrador asíncronamente

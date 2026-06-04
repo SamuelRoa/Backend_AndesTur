@@ -68,7 +68,7 @@ export const sendAdminPreReservationEmail = async (customer, reservation, packag
           </tr>
           <tr>
             <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Fecha de Solicitud:</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;">${new Date(reservation.reservation_date).toLocaleString()}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee;">${new Date(reservation.reservation_date).toLocaleString("es-CO", { timeZone: "America/Bogota" })}</td>
           </tr>
           <tr>
             <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Estado Inicial:</td>
