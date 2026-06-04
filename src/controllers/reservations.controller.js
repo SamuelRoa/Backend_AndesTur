@@ -148,6 +148,70 @@ export const deleteReservation = async (req, res) => {
   }
 };
 
+export const queryReservations = async (req, res) => {
+  try {
+    const { email, dni } = req.body;
+
+    const customer = await customersModel.findOne({
+      where: { email, dni }
+    });
+
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: "No se encontraron reservaciones con esos datos",
+      });
+    }
+
+    const reservations = await reservationsModel.findAll({
+      where: { id_customer: customer.id_customer },
+      include: [
+        {
+          model: packagesModel,
+          attributes: ["name", "departure_date", "return_date", "price", "description"],
+        },
+      ],
+      order: [["created_at", "DESC"]],
+    });
+
+    const data = reservations.map((r) => ({
+      id_reservation: r.id_reservation,
+      pay_state: r.pay_state,
+      id_package: r.id_package,
+      package: r.Package
+        ? {
+            name: r.Package.name,
+            departure_date: r.Package.departure_date,
+            return_date: r.Package.return_date,
+            price: r.Package.price,
+            description: r.Package.description,
+          }
+        : null,
+      reservation_date: r.reservation_date,
+      created_at: r.created_at,
+      customer: {
+        dni: customer.dni,
+        name: customer.name,
+        lastname: customer.lastname,
+        email: customer.email,
+        phone_number: customer.phone_number,
+      },
+    }));
+
+    res.json({
+      success: true,
+      data: { reservations: data },
+    });
+  } catch (error) {
+    console.error("Error al consultar reservaciones:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error al consultar reservaciones",
+      error: error.message,
+    });
+  }
+};
+
 export const createPreReservation = async (req, res) => {
   try {
     const { dni, name, lastname, phone_number, email, id_package } = req.body;

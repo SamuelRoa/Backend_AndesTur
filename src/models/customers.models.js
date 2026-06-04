@@ -11,7 +11,7 @@ export const customersModel = sequelize.define(
     },
     dni: {
       type: DataTypes.STRING(20),
-      allowNull: false,
+      allowNull: true,
       unique: true,
     },
     name: {
@@ -26,6 +26,7 @@ export const customersModel = sequelize.define(
     },
     email: {
       type: DataTypes.STRING(100),
+      unique: true,
     },
   },
   {

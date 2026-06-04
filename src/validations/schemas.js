@@ -323,6 +323,12 @@ export const healthSchema = z.object({
   environment: z.string(),
 });
 
+// === RESERVATION QUERY (Website - Public) ===
+export const reservationQuerySchema = z.object({
+  email: emailSchema,
+  dni: dniSchema,
+});
+
 // === PRE-RESERVATIONS (Website) ===
 export const preReservationSchema = z.object({
   dni: dniSchema,

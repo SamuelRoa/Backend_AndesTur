@@ -13,9 +13,9 @@ const JWT_EXPIRATION = process.env.JWT_EXPIRATION || "24h";
  * @param {Object} payload - Datos a incluir en el token
  * @returns {string} Token JWT firmado
  */
-export const generateToken = (payload) => {
+export const generateToken = (payload, expiresIn) => {
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRATION,
+    expiresIn: expiresIn || JWT_EXPIRATION,
   });
 };
 
