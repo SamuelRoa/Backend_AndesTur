@@ -16,12 +16,14 @@ const getTransporter = () => {
   const transporterConfig = process.env.SMTP_HOST
     ? {
         host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT) || 465,
+        port: Number(process.env.SMTP_PORT) || 587,
         secure: process.env.SMTP_SECURE === "true",
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS,
         },
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
       }
     : {
         service: process.env.EMAIL_SERVICE || "gmail",
@@ -29,11 +31,8 @@ const getTransporter = () => {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS,
         },
-        port: 587,
-        secure: false,
-        tls: {
-          rejectUnauthorized: false,
-        },
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
       };
 
   return nodemailer.createTransport(transporterConfig);
