@@ -29,6 +29,11 @@ const getTransporter = () => {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS,
         },
+        port: 587,
+        secure: false,
+        tls: {
+          rejectUnauthorized: false,
+        },
       };
 
   return nodemailer.createTransport(transporterConfig);
