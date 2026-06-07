@@ -1,28 +1,34 @@
-import emailjs from '@emailjs/nodejs';
+import emailjs from "@emailjs/nodejs";
 
 const readEnv = (...keys) => {
   for (const key of keys) {
     const value = process.env[key]?.trim();
     if (value) return value;
   }
-  return '';
+  return "";
 };
 
 const getConfig = () => {
-  const publicKey = readEnv('EMAILJS_PUBLIC_KEY', 'EMAILJS_USER_ID');
-  const privateKey = readEnv('EMAILJS_PRIVATE_KEY', 'EMAILJS_SECRET_KEY');
+  const publicKey = readEnv("EMAILJS_PUBLIC_KEY", "EMAILJS_USER_ID");
+  const privateKey = readEnv("EMAILJS_PRIVATE_KEY", "EMAILJS_SECRET_KEY");
 
   if (!publicKey || !privateKey) {
-    throw new Error('EmailJS no configurado: EMAILJS_PUBLIC_KEY/EMAILJS_PRIVATE_KEY faltan');
+    throw new Error(
+      "EmailJS no configurado: EMAILJS_PUBLIC_KEY/EMAILJS_PRIVATE_KEY faltan",
+    );
   }
 
   return { publicKey, privateKey };
 };
 
 const getServiceId = () => {
-  const serviceId = readEnv('EMAILJS_SERVICE_ID', 'EMAILJS_SERVICEID', 'SERVICE_ID');
+  const serviceId = readEnv(
+    "EMAILJS_SERVICE_ID",
+    "EMAILJS_SERVICEID",
+    "SERVICE_ID",
+  );
   if (!serviceId) {
-    throw new Error('EmailJS no configurado: EMAILJS_SERVICE_ID faltante');
+    throw new Error("EmailJS no configurado: EMAILJS_SERVICE_ID faltante");
   }
   return serviceId;
 };
@@ -41,16 +47,26 @@ export const sendEmail = async ({ templateId, templateParams }) => {
   return response;
 };
 
-export const sendPasswordRecovery = async ({ to_email, nombre_usuario, password_temporal }) => {
+export const sendPasswordRecovery = async ({
+  to_email,
+  nombre_usuario,
+  password_temporal,
+}) => {
   return sendEmail({
-    templateId: readEnv('EMAILJS_TEMPLATE_PASSWORD', 'EMAILJS_TEMPLATE_RECOVERY') || 'template_qlsx4vk',
+    templateId:
+      readEnv("EMAILJS_TEMPLATE_PASSWORD", "EMAILJS_TEMPLATE_RECOVERY") ||
+      "template_qlsx4vk",
     templateParams: { to_email, nombre_usuario, password_temporal },
   });
 };
 
 export const sendGenericEmail = async ({ to_email, subject, html_content }) => {
   return sendEmail({
-    templateId: readEnv('EMAILJS_TEMPLATE_GENERIC', 'EMAILJS_TEMPLATE_ADMIN_PRERESERVA', 'EMAILJS_TEMPLATE_PRERESERVA'),
+    templateId: readEnv(
+      "EMAILJS_TEMPLATE_GENERIC",
+      "EMAILJS_TEMPLATE_ADMIN_PRERESERVA",
+      "EMAILJS_TEMPLATE_PRERESERVA",
+    ),
     templateParams: { to_email, subject, html_content },
   });
 };
