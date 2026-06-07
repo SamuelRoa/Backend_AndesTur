@@ -12,13 +12,11 @@ export const getAllReservations = async (req, res) => {
     const reservations = await reservationsModel.findAll();
     res.json({ success: true, data: reservations });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Error cargando reservaciones",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Error cargando reservaciones",
+      error: error.message,
+    });
   }
 };
 
@@ -35,13 +33,11 @@ export const getReservationById = async (req, res) => {
 
     res.json({ success: true, data: reservation });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Error buscando reservación",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Error buscando reservación",
+      error: error.message,
+    });
   }
 };
 
@@ -50,13 +46,11 @@ export const createReservation = async (req, res) => {
     const reservation = await reservationsModel.create(req.body);
     res.status(201).json({ success: true, data: reservation });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Error creando reservación",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Error creando reservación",
+      error: error.message,
+    });
   }
 };
 
@@ -66,10 +60,7 @@ export const updateReservation = async (req, res) => {
 
     // Obtener la reserva actual incluyendo cliente y paquete antes de actualizar
     const reservationBefore = await reservationsModel.findByPk(id, {
-      include: [
-        { model: customersModel },
-        { model: packagesModel }
-      ]
+      include: [{ model: customersModel }, { model: packagesModel }],
     });
 
     if (!reservationBefore) {
@@ -90,10 +81,7 @@ export const updateReservation = async (req, res) => {
 
     // Cargar la reserva actualizada con sus asociaciones
     const updatedReservation = await reservationsModel.findByPk(id, {
-      include: [
-        { model: customersModel },
-        { model: packagesModel }
-      ]
+      include: [{ model: customersModel }, { model: packagesModel }],
     });
 
     // Enviar correo si el estado cambia a 'paid'
@@ -106,21 +94,22 @@ export const updateReservation = async (req, res) => {
       sendCustomerValidationEmail(
         updatedReservation.Customer,
         updatedReservation,
-        updatedReservation.Package
+        updatedReservation.Package,
       ).catch((err) => {
-        console.error("Error al enviar correo de validación al cliente:", err.message);
+        console.error(
+          "Error al enviar correo de validación al cliente:",
+          err.message,
+        );
       });
     }
 
     res.json({ success: true, data: updatedReservation });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Error actualizando reservación",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Error actualizando reservación",
+      error: error.message,
+    });
   }
 };
 
@@ -139,13 +128,11 @@ export const deleteReservation = async (req, res) => {
 
     res.json({ success: true, message: "Reservación eliminada" });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Error eliminando reservación",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Error eliminando reservación",
+      error: error.message,
+    });
   }
 };
 
@@ -155,10 +142,7 @@ export const rejectReservation = async (req, res) => {
     const { reason } = req.body;
 
     const reservation = await reservationsModel.findByPk(id, {
-      include: [
-        { model: customersModel },
-        { model: packagesModel }
-      ]
+      include: [{ model: customersModel }, { model: packagesModel }],
     });
 
     if (!reservation) {
@@ -183,7 +167,7 @@ export const rejectReservation = async (req, res) => {
         reservation.Customer,
         reservation,
         reservation.Package,
-        reason
+        reason,
       ).catch((err) => {
         console.error("Error al enviar correo de rechazo:", err.message);
       });
@@ -209,7 +193,7 @@ export const queryReservations = async (req, res) => {
     const { email, dni } = req.body;
 
     const customer = await customersModel.findOne({
-      where: { email, dni }
+      where: { email, dni },
     });
 
     if (!customer) {
@@ -224,7 +208,13 @@ export const queryReservations = async (req, res) => {
       include: [
         {
           model: packagesModel,
-          attributes: ["name", "departure_date", "return_date", "price", "description"],
+          attributes: [
+            "name",
+            "departure_date",
+            "return_date",
+            "price",
+            "description",
+          ],
         },
       ],
       order: [["created_at", "DESC"]],
@@ -277,7 +267,10 @@ export const createPreReservation = async (req, res) => {
     if (!packageData) {
       return res
         .status(404)
-        .json({ success: false, message: "El paquete de viaje seleccionado no existe" });
+        .json({
+          success: false,
+          message: "El paquete de viaje seleccionado no existe",
+        });
     }
 
     // 2. Buscar o crear/actualizar el cliente por DNI
@@ -318,14 +311,25 @@ export const createPreReservation = async (req, res) => {
     });
 
     // 4. Enviar notificación por correo al administrador asíncronamente
-    sendAdminPreReservationEmail(customer, reservation, packageData).catch((err) => {
-      const errMsg = (err && err.message) || String(err);
-      console.error("Error al enviar correo de pre-reserva al administrador:", errMsg);
-      console.error("EmailJS env:", {
-        SERVICE_ID: process.env.EMAILJS_SERVICE_ID || process.env.EMAILJS_SERVICEID || null,
-        TEMPLATE_ADMIN_PRERESERVA: process.env.EMAILJS_TEMPLATE_ADMIN_PRERESERVA || process.env.EMAILJS_TEMPLATE_GENERIC || null,
-      });
-    });
+    sendAdminPreReservationEmail(customer, reservation, packageData).catch(
+      (err) => {
+        const errMsg = (err && err.message) || String(err);
+        console.error(
+          "Error al enviar correo de pre-reserva al administrador:",
+          errMsg,
+        );
+        console.error("EmailJS env:", {
+          SERVICE_ID:
+            process.env.EMAILJS_SERVICE_ID ||
+            process.env.EMAILJS_SERVICEID ||
+            null,
+          TEMPLATE_ADMIN_PRERESERVA:
+            process.env.EMAILJS_TEMPLATE_ADMIN_PRERESERVA ||
+            process.env.EMAILJS_TEMPLATE_GENERIC ||
+            null,
+        });
+      },
+    );
 
     res.status(201).json({
       success: true,

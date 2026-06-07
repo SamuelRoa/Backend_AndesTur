@@ -284,7 +284,7 @@ export const changePassword = async (req, res) => {
 export const recoverPassword = async (req, res) => {
   try {
     const emailValidationSchema = z.object({
-      email: z.string().email("Email inválido").toLowerCase().trim()
+      email: z.string().email("Email inválido").toLowerCase().trim(),
     });
 
     const validation = validateData(emailValidationSchema, req.body);
@@ -307,8 +307,9 @@ export const recoverPassword = async (req, res) => {
     // Pero si el usuario existe, procesamos la recuperación
     if (user) {
       // Generar contraseña aleatoria (1 mayúscula, 1 minúscula, 1 número, 1 especial, 8+ caracteres)
-      const randomPassword = "A" + crypto.randomBytes(4).toString("hex") + "1!b";
-      
+      const randomPassword =
+        "A" + crypto.randomBytes(4).toString("hex") + "1!b";
+
       // Actualizar contraseña
       user.password = randomPassword;
       await user.save();
@@ -321,10 +322,12 @@ export const recoverPassword = async (req, res) => {
         });
       } catch (mailError) {
         console.error("Error enviando correo de recuperación:", mailError);
-        const mailErrMsg = (mailError && mailError.message) || String(mailError);
-        const responseMessage = process.env.NODE_ENV === "development"
-          ? `Error al enviar el correo de recuperación: ${mailErrMsg}`
-          : "Error al enviar el correo de recuperación (revisa la configuración de EmailJS)";
+        const mailErrMsg =
+          (mailError && mailError.message) || String(mailError);
+        const responseMessage =
+          process.env.NODE_ENV === "development"
+            ? `Error al enviar el correo de recuperación: ${mailErrMsg}`
+            : "Error al enviar el correo de recuperación (revisa la configuración de EmailJS)";
 
         return res.status(500).json({
           success: false,
@@ -335,7 +338,8 @@ export const recoverPassword = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Si el correo está registrado, se han enviado las instrucciones para recuperar la contraseña.",
+      message:
+        "Si el correo está registrado, se han enviado las instrucciones para recuperar la contraseña.",
     });
   } catch (error) {
     console.error("Error en recuperación de contraseña:", error.message);
