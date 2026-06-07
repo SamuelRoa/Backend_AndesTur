@@ -311,25 +311,24 @@ export const createPreReservation = async (req, res) => {
     });
 
     // 4. Enviar notificación por correo al administrador asíncronamente
-    sendAdminPreReservationEmail(customer, reservation, packageData).catch(
-      (err) => {
-        const errMsg = (err && err.message) || String(err);
-        console.error(
-          "Error al enviar correo de pre-reserva al administrador:",
-          errMsg,
-        );
+      sendAdminPreReservationEmail(customer, reservation, packageData).catch((err) => {
+        // Try to stringify the error safely to surface SDK response fields (status, text)
+        let errDetail;
+        try {
+          errDetail = JSON.stringify(err, Object.getOwnPropertyNames(err), 2);
+        } catch (_) {
+          try {
+            errDetail = JSON.stringify(err);
+          } catch (__ ) {
+            errDetail = String(err);
+          }
+        }
+        console.error("Error al enviar correo de pre-reserva al administrador:", errDetail);
         console.error("EmailJS env:", {
-          SERVICE_ID:
-            process.env.EMAILJS_SERVICE_ID ||
-            process.env.EMAILJS_SERVICEID ||
-            null,
-          TEMPLATE_ADMIN_PRERESERVA:
-            process.env.EMAILJS_TEMPLATE_ADMIN_PRERESERVA ||
-            process.env.EMAILJS_TEMPLATE_GENERIC ||
-            null,
+          SERVICE_ID: process.env.EMAILJS_SERVICE_ID || process.env.EMAILJS_SERVICEID || null,
+          TEMPLATE_ADMIN_PRERESERVA: process.env.EMAILJS_TEMPLATE_ADMIN_PRERESERVA || process.env.EMAILJS_TEMPLATE_GENERIC || null,
         });
-      },
-    );
+      });
 
     res.status(201).json({
       success: true,

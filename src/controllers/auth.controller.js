@@ -321,9 +321,18 @@ export const recoverPassword = async (req, res) => {
           password_temporal: randomPassword,
         });
       } catch (mailError) {
-        console.error("Error enviando correo de recuperación:", mailError);
-        const mailErrMsg =
-          (mailError && mailError.message) || String(mailError);
+        let mailErrDetail;
+        try {
+          mailErrDetail = JSON.stringify(mailError, Object.getOwnPropertyNames(mailError), 2);
+        } catch (_) {
+          try {
+            mailErrDetail = JSON.stringify(mailError);
+          } catch (__ ) {
+            mailErrDetail = String(mailError);
+          }
+        }
+        console.error("Error enviando correo de recuperación:", mailErrDetail);
+        const mailErrMsg = (mailError && mailError.message) || String(mailError);
         const responseMessage =
           process.env.NODE_ENV === "development"
             ? `Error al enviar el correo de recuperación: ${mailErrMsg}`

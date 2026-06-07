@@ -36,13 +36,15 @@ const getServiceId = () => {
 export const sendEmail = async ({ templateId, templateParams }) => {
   const serviceId = getServiceId();
   const config = getConfig();
+  // Log which templateId will be used (fall back candidates shown if undefined)
+  const envCandidates = {
+    EMAILJS_TEMPLATE_GENERIC: process.env.EMAILJS_TEMPLATE_GENERIC || null,
+    EMAILJS_TEMPLATE_ADMIN_PRERESERVA: process.env.EMAILJS_TEMPLATE_ADMIN_PRERESERVA || null,
+    EMAILJS_TEMPLATE_PRERESERVA: process.env.EMAILJS_TEMPLATE_PRERESERVA || null,
+  };
+  console.info('EmailJS: sending with templateId:', templateId || '(none)', 'envCandidates:', envCandidates);
 
-  const response = await emailjs.send(
-    serviceId,
-    templateId,
-    templateParams,
-    config,
-  );
+  const response = await emailjs.send(serviceId, templateId, templateParams, config);
 
   return response;
 };

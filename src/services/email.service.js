@@ -58,7 +58,22 @@ export const sendAdminPreReservationEmail = async (
       html_content: wrapper(content),
     });
   } catch (error) {
-    const errMsg = (error && error.message) || String(error);
+    let errDetail;
+    try {
+      errDetail = JSON.stringify(error, Object.getOwnPropertyNames(error), 2);
+    } catch (_) {
+      try {
+        errDetail = JSON.stringify(error);
+      } catch (__ ) {
+        errDetail = String(error);
+      }
+    }
+    console.error('Error al enviar correo de pre-reserva al administrador:', errDetail);
+    console.error('EmailJS env (no secrets):', {
+      SERVICE_ID: process.env.EMAILJS_SERVICE_ID || process.env.EMAILJS_SERVICEID || null,
+      TEMPLATE_ADMIN_PRERESERVA: process.env.EMAILJS_TEMPLATE_ADMIN_PRERESERVA || process.env.EMAILJS_TEMPLATE_GENERIC || null,
+    });
+    throw error;
     console.error(
       "Error al enviar correo de pre-reserva al administrador:",
       errMsg,
