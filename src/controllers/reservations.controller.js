@@ -319,7 +319,12 @@ export const createPreReservation = async (req, res) => {
 
     // 4. Enviar notificación por correo al administrador asíncronamente
     sendAdminPreReservationEmail(customer, reservation, packageData).catch((err) => {
-      console.error("Error al enviar correo de pre-reserva al administrador:", err.message);
+      const errMsg = (err && err.message) || String(err);
+      console.error("Error al enviar correo de pre-reserva al administrador:", errMsg);
+      console.error("EmailJS env:", {
+        SERVICE_ID: process.env.EMAILJS_SERVICE_ID || process.env.EMAILJS_SERVICEID || null,
+        TEMPLATE_ADMIN_PRERESERVA: process.env.EMAILJS_TEMPLATE_ADMIN_PRERESERVA || process.env.EMAILJS_TEMPLATE_GENERIC || null,
+      });
     });
 
     res.status(201).json({
@@ -331,10 +336,11 @@ export const createPreReservation = async (req, res) => {
       },
     });
   } catch (error) {
+    const errMsg = (error && error.message) || String(error);
     res.status(500).json({
       success: false,
       message: "Error procesando la pre-reserva",
-      error: error.message,
+      error: errMsg,
     });
   }
 };

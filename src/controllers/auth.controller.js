@@ -321,8 +321,9 @@ export const recoverPassword = async (req, res) => {
         });
       } catch (mailError) {
         console.error("Error enviando correo de recuperación:", mailError);
+        const mailErrMsg = (mailError && mailError.message) || String(mailError);
         const responseMessage = process.env.NODE_ENV === "development"
-          ? `Error al enviar el correo de recuperación: ${mailError.message}`
+          ? `Error al enviar el correo de recuperación: ${mailErrMsg}`
           : "Error al enviar el correo de recuperación (revisa la configuración de EmailJS)";
 
         return res.status(500).json({

@@ -52,7 +52,12 @@ export const sendAdminPreReservationEmail = async (customer, reservation, packag
       html_content: wrapper(content),
     });
   } catch (error) {
-    console.error('Error al enviar correo de pre-reserva al administrador:', error.message);
+    const errMsg = (error && error.message) || String(error);
+    console.error('Error al enviar correo de pre-reserva al administrador:', errMsg);
+    console.error('EmailJS env (no secrets):', {
+      SERVICE_ID: process.env.EMAILJS_SERVICE_ID || process.env.EMAILJS_SERVICEID || null,
+      TEMPLATE_ADMIN_PRERESERVA: process.env.EMAILJS_TEMPLATE_ADMIN_PRERESERVA || process.env.EMAILJS_TEMPLATE_GENERIC || null,
+    });
     throw error;
   }
 };
@@ -93,7 +98,8 @@ export const sendCustomerValidationEmail = async (customer, reservation, package
       html_content: wrapper(content),
     });
   } catch (error) {
-    console.error('Error al enviar correo de validación al cliente:', error.message);
+    const errMsg = (error && error.message) || String(error);
+    console.error('Error al enviar correo de validación al cliente:', errMsg);
     throw error;
   }
 };
@@ -122,7 +128,8 @@ export const sendRejectionEmail = async (customer, reservation, packageData, rea
       html_content: wrapper(content),
     });
   } catch (error) {
-    console.error('Error al enviar correo de rechazo al cliente:', error.message);
+    const errMsg = (error && error.message) || String(error);
+    console.error('Error al enviar correo de rechazo al cliente:', errMsg);
     throw error;
   }
 };
@@ -146,7 +153,8 @@ export const sendWeeklyReportEmail = async ({ to_email, week_range, total_reserv
       html_content: wrapper(content),
     });
   } catch (error) {
-    console.error('Error al enviar reporte semanal:', error.message);
+    const errMsg = (error && error.message) || String(error);
+    console.error('Error al enviar reporte semanal:', errMsg);
     throw error;
   }
 };
