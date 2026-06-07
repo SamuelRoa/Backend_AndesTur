@@ -265,12 +265,10 @@ export const createPreReservation = async (req, res) => {
     // 1. Verificar si el paquete existe
     const packageData = await packagesModel.findByPk(id_package);
     if (!packageData) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "El paquete de viaje seleccionado no existe",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "El paquete de viaje seleccionado no existe",
+      });
     }
 
     // 2. Buscar o crear/actualizar el cliente por DNI
@@ -311,7 +309,8 @@ export const createPreReservation = async (req, res) => {
     });
 
     // 4. Enviar notificación por correo al administrador asíncronamente
-      sendAdminPreReservationEmail(customer, reservation, packageData).catch((err) => {
+    sendAdminPreReservationEmail(customer, reservation, packageData).catch(
+      (err) => {
         // Try to stringify the error safely to surface SDK response fields (status, text)
         let errDetail;
         try {
@@ -319,16 +318,26 @@ export const createPreReservation = async (req, res) => {
         } catch (_) {
           try {
             errDetail = JSON.stringify(err);
-          } catch (__ ) {
+          } catch (__) {
             errDetail = String(err);
           }
         }
-        console.error("Error al enviar correo de pre-reserva al administrador:", errDetail);
+        console.error(
+          "Error al enviar correo de pre-reserva al administrador:",
+          errDetail,
+        );
         console.error("EmailJS env:", {
-          SERVICE_ID: process.env.EMAILJS_SERVICE_ID || process.env.EMAILJS_SERVICEID || null,
-          TEMPLATE_ADMIN_PRERESERVA: process.env.EMAILJS_TEMPLATE_ADMIN_PRERESERVA || process.env.EMAILJS_TEMPLATE_GENERIC || null,
+          SERVICE_ID:
+            process.env.EMAILJS_SERVICE_ID ||
+            process.env.EMAILJS_SERVICEID ||
+            null,
+          TEMPLATE_ADMIN_PRERESERVA:
+            process.env.EMAILJS_TEMPLATE_ADMIN_PRERESERVA ||
+            process.env.EMAILJS_TEMPLATE_GENERIC ||
+            null,
         });
-      });
+      },
+    );
 
     res.status(201).json({
       success: true,
