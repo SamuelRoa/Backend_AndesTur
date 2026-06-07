@@ -4,6 +4,7 @@ import { packagesModel } from "../models/packages.models.js";
 import {
   sendAdminPreReservationEmail,
   sendCustomerValidationEmail,
+  sendRejectionEmail,
 } from "../services/email.service.js";
 
 export const getAllReservations = async (req, res) => {
@@ -145,6 +146,61 @@ export const deleteReservation = async (req, res) => {
         message: "Error eliminando reservación",
         error: error.message,
       });
+  }
+};
+
+export const rejectReservation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const reservation = await reservationsModel.findByPk(id, {
+      include: [
+        { model: customersModel },
+        { model: packagesModel }
+      ]
+    });
+
+    if (!reservation) {
+      return res.status(404).json({
+        success: false,
+        message: "Reservación no encontrada",
+      });
+    }
+
+    if (reservation.pay_state !== "pending") {
+      return res.status(400).json({
+        success: false,
+        message: "Solo se pueden rechazar reservaciones en estado pendiente",
+      });
+    }
+
+    reservation.pay_state = "rejected";
+    await reservation.save();
+
+    if (reservation.Customer?.email) {
+      sendRejectionEmail(
+        reservation.Customer,
+        reservation,
+        reservation.Package,
+        reason
+      ).catch((err) => {
+        console.error("Error al enviar correo de rechazo:", err.message);
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Reservación rechazada exitosamente",
+      data: reservation,
+    });
+  } catch (error) {
+    console.error("Error al rechazar reservación:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error al rechazar reservación",
+      error: error.message,
+    });
   }
 };
 

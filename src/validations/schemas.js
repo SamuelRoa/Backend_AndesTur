@@ -87,6 +87,7 @@ export const payStateEnum = z.enum([
   "paid",
   "cancelled",
   "expired",
+  "rejected",
 ]);
 
 // ==================== VALIDACIONES ESPECÍFICAS DEL PROYECTO ====================
@@ -268,6 +269,13 @@ export const createReservationSchema = z.object({
 
 export const updateReservationSchema = z.object({
   pay_state: payStateEnum.optional(),
+});
+
+export const rejectReservationSchema = z.object({
+  reason: z
+    .string()
+    .min(1, "El motivo de rechazo es requerido")
+    .max(500, "El motivo no puede exceder 500 caracteres"),
 });
 
 // === PAYMENT HEADERS ===

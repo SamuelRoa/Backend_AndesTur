@@ -7,8 +7,8 @@ import { AppError } from "../middleware/errorHandler.middleware.js";
 import { loginSchema, createUserSchema } from "../validations/schemas.js";
 import { z } from "zod";
 import { passwordSchema } from "../validations/schemas.js";
-import nodemailer from "nodemailer";
 import crypto from "crypto";
+import { sendPasswordRecovery } from "../services/emailjs.service.js";
 
 // ==================== REGISTRO ====================
 export const register = async (req, res) => {
@@ -313,55 +313,22 @@ export const recoverPassword = async (req, res) => {
       user.password = randomPassword;
       await user.save();
 
-      // Validar configuración SMTP mínima
-      if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        console.error("Falta configuración de correo: EMAIL_USER o EMAIL_PASS no está definida");
+      try {
+        await sendPasswordRecovery({
+          to_email: user.email,
+          nombre_usuario: user.username,
+          password_temporal: randomPassword,
+        });
+      } catch (mailError) {
+        console.error("Error enviando correo de recuperación:", mailError);
+        const responseMessage = process.env.NODE_ENV === "development"
+          ? `Error al enviar el correo de recuperación: ${mailError.message}`
+          : "Error al enviar el correo de recuperación (revisa la configuración de EmailJS)";
+
         return res.status(500).json({
           success: false,
-          message: "Error al enviar el correo de recuperación (falta configuración de correo)",
+          message: responseMessage,
         });
-      }
-
-      // Configurar transporte SMTP flexible
-      const transporterConfig = process.env.SMTP_HOST
-        ? {
-            host: process.env.SMTP_HOST,
-            port: Number(process.env.SMTP_PORT) || 465,
-            secure: process.env.SMTP_SECURE === "true",
-            auth: {
-              user: process.env.EMAIL_USER,
-              pass: process.env.EMAIL_PASS,
-            },
-          }
-        : {
-            service: process.env.EMAIL_SERVICE || "gmail",
-            auth: {
-              user: process.env.EMAIL_USER,
-              pass: process.env.EMAIL_PASS,
-            },
-          };
-
-      const transporter = nodemailer.createTransport(transporterConfig);
-
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: user.email,
-        subject: "Recuperación de contraseña - AndesTur",
-        text: `Hola ${user.username},\n\nTu nueva contraseña es: ${randomPassword}\n\nPor favor, inicia sesión con esta nueva contraseña y cámbiala lo antes posible desde tu perfil.\n\nSaludos,\nEquipo de AndesTur`,
-      };
-
-      try {
-         await transporter.sendMail(mailOptions);
-      } catch (mailError) {
-         console.error("Error enviando correo de recuperación:", mailError);
-         const responseMessage = process.env.NODE_ENV === "development"
-           ? `Error al enviar el correo de recuperación: ${mailError.message}`
-           : "Error al enviar el correo de recuperación (revisa la configuración SMTP)";
-
-         return res.status(500).json({
-           success: false,
-           message: responseMessage,
-         });
       }
     }
 

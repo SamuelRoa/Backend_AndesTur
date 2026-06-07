@@ -5,14 +5,13 @@ import { reservationsModel } from "../models/reservations.models.js";
 import { customersModel } from "../models/customers.models.js";
 import { packagesModel } from "../models/packages.models.js";
 import fs from "fs";
-import nodemailer from "nodemailer";
 import path from "path";
 import { fileURLToPath } from "url";
+import { sendWeeklyReportEmail } from "../services/email.service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Genera PDF con las reservaciones provistas
 const generatePdfBuffer = async (reservations) => {
   const doc = new PDFDocument({ size: "A4", margin: 50 });
   const buffers = [];
@@ -41,7 +40,6 @@ const generatePdfBuffer = async (reservations) => {
   });
 };
 
-// Recupera reservaciones de la última semana y enriquece con nombres
 const fetchWeeklyReservations = async () => {
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
@@ -59,7 +57,6 @@ const fetchWeeklyReservations = async () => {
     order: [["reservation_date", "DESC"]],
   });
 
-  // Enriquecer con datos de paquete y cliente si no están disponibles directamente
   const enriched = [];
   for (const r of reservations) {
     const json = r.toJSON ? r.toJSON() : r;
@@ -76,41 +73,26 @@ const fetchWeeklyReservations = async () => {
   return enriched.filter((x) => new Date(x.reservation_date) >= oneWeekAgo);
 };
 
-const sendMailWithAttachment = async (buffer) => {
-  // Configuración flexible similar a recoverPassword
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.error("Falta configuración de correo: EMAIL_USER o EMAIL_PASS no está definida");
+const sendNotification = async (weekRange, total, pdfPath) => {
+  const to = process.env.REPORT_TO_EMAIL || process.env.EMAIL_USER;
+  if (!to) {
+    console.error("Falta configuración de correo: REPORT_TO_EMAIL o EMAIL_USER no está definida");
     return;
   }
 
-  const transporterConfig = process.env.SMTP_HOST
-    ? {
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT) || 465,
-        secure: process.env.SMTP_SECURE === "true",
-        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-      }
-    : { service: process.env.EMAIL_SERVICE || "gmail", auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS } };
-
-  const transporter = nodemailer.createTransport(transporterConfig);
-
-  const msg = {
-    from: process.env.EMAIL_USER,
-    to: process.env.REPORT_TO_EMAIL || process.env.EMAIL_USER,
-    subject: `Reporte semanal de reservaciones - ${new Date().toLocaleDateString()}`,
-    text: "Adjunto reporte semanal de reservaciones.",
-    attachments: [{ filename: `reporte_reservaciones_${Date.now()}.pdf`, content: buffer }],
-  };
-
   try {
-    const info = await transporter.sendMail(msg);
-    console.log("Reporte enviado:", info.messageId);
+    await sendWeeklyReportEmail({
+      to_email: to,
+      week_range: weekRange,
+      total_reservations: String(total),
+    });
+    console.log("Notificación de reporte enviada a:", to);
+    console.log("PDF guardado localmente en:", pdfPath);
   } catch (err) {
-    console.error("Error enviando reporte:", err.message);
+    console.error("Error enviando notificación de reporte:", err.message);
   }
 };
 
-// Job que se puede programar, aquí expuesto para ser llamado desde server
 export const runWeeklyReportJob = async () => {
   try {
     const reservations = await fetchWeeklyReservations();
@@ -120,12 +102,18 @@ export const runWeeklyReportJob = async () => {
     }
 
     const pdfBuffer = await generatePdfBuffer(reservations);
-    await sendMailWithAttachment(pdfBuffer);
 
-    // También guardamos un archivo local para inspección opcional
-    const outPath = path.join(__dirname, "..", "tmp", `reporte_${Date.now()}.pdf`);
-    fs.mkdirSync(path.dirname(outPath), { recursive: true });
+    const outDir = path.join(__dirname, "..", "tmp");
+    fs.mkdirSync(outDir, { recursive: true });
+    const outPath = path.join(outDir, `reporte_${Date.now()}.pdf`);
     fs.writeFileSync(outPath, pdfBuffer);
+
+    const now = new Date();
+    const weekAgo = new Date();
+    weekAgo.setDate(now.getDate() - 7);
+    const weekRange = `${weekAgo.toISOString().slice(0,10)} - ${now.toISOString().slice(0,10)}`;
+
+    await sendNotification(weekRange, reservations.length, outPath);
 
     console.log("Reporte generado y guardado en:", outPath);
   } catch (error) {
@@ -133,7 +121,6 @@ export const runWeeklyReportJob = async () => {
   }
 };
 
-// Ejecutar manualmente si se llama como script
 if (process.argv[1] && path.basename(process.argv[1]) === "sendWeeklyReport.js") {
   runWeeklyReportJob();
 }

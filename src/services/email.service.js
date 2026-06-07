@@ -1,194 +1,152 @@
-import nodemailer from "nodemailer";
-import dotenv from "dotenv";
+import { sendGenericEmail } from './emailjs.service.js';
 
-dotenv.config();
+const HEAD = `
+<div style="background: #1B4332; padding: 30px; text-align: center;">
+  <h1 style="color: #C9954B; margin: 0; font-size: 28px; font-family: Georgia, 'Times New Roman', serif;">AndesTur</h1>
+</div>`;
 
-/**
- * Crea y configura el transportador de correo utilizando las variables de entorno.
- * @returns {Object|null} nodemailer transporter o null si faltan configuraciones
- */
-const getTransporter = () => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.error("⚠️ Configuración de correo incompleta: EMAIL_USER o EMAIL_PASS no están definidos.");
-    return null;
+const FOOTER = `
+<div style="background: #1B4332; padding: 15px; text-align: center;">
+  <p style="color: #F5EDE0; margin: 0; font-size: 12px; font-family: Georgia, 'Times New Roman', serif;">AndesTur — Agencia de Viajes</p>
+</div>`;
+
+const wrapper = (content) => `
+<div style="font-family: Georgia, 'Times New Roman', serif; max-width: 600px; margin: 0 auto; background: #FAFAF7; border: 1px solid #E8D5B7; border-radius: 8px; overflow: hidden;">
+  ${HEAD}
+  <div style="padding: 30px;">${content}</div>
+  ${FOOTER}
+</div>`;
+
+export const sendAdminPreReservationEmail = async (customer, reservation, packageData) => {
+  const adminEmail = process.env.REPORT_TO_EMAIL || process.env.EMAIL_USER;
+  if (!adminEmail) {
+    console.error('No hay destinatario admin configurado (REPORT_TO_EMAIL o EMAIL_USER)');
+    return;
   }
 
-  const transporterConfig = process.env.SMTP_HOST
-    ? {
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT) || 587,
-        secure: process.env.SMTP_SECURE === "true",
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-      }
-    : {
-        service: process.env.EMAIL_SERVICE || "gmail",
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-      };
+  const packageName = packageData?.name || `Paquete #${reservation.id_package}`;
 
-  return nodemailer.createTransport(transporterConfig);
-};
-
-/**
- * Envía un correo de notificación al administrador informando sobre una nueva pre-reserva.
- * @param {Object} customer - Datos del cliente
- * @param {Object} reservation - Datos de la reservación
- * @param {Object} packageData - Datos del paquete de viaje
- */
-export const sendAdminPreReservationEmail = async (customer, reservation, packageData) => {
-  const transporter = getTransporter();
-  if (!transporter) return;
-
-  const adminEmail = process.env.REPORT_TO_EMAIL || process.env.EMAIL_USER;
-  const packageName = packageData ? packageData.name : `Paquete #${reservation.id_package}`;
-
-  const mailOptions = {
-    from: `"AndesTur Sitio Web" <${process.env.EMAIL_USER}>`,
-    to: adminEmail,
-    subject: `🔔 Nueva Pre-reserva Recibida - AndesTur`,
-    html: `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-        <h2 style="color: #4CAF50; border-bottom: 2px solid #4CAF50; padding-bottom: 10px;">Nueva Pre-reserva Registrada</h2>
-        <p>Se ha registrado una nueva pre-reserva desde el sitio web con los siguientes detalles:</p>
-        
-        <h3 style="color: #2196F3; margin-top: 20px;">Detalles de la Reserva:</h3>
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold; width: 40%;">Reserva ID:</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;">${reservation.id_reservation}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Paquete:</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;">${packageName}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Fecha de Solicitud:</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;">${new Date(reservation.reservation_date).toLocaleString("es-CO", { timeZone: "America/Bogota" })}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Estado Inicial:</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;"><span style="background-color: #ffeb3b; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 14px;">Pendiente</span></td>
-          </tr>
-        </table>
-        
-        <h3 style="color: #2196F3; margin-top: 20px;">Detalles del Cliente:</h3>
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold; width: 40%;">DNI:</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;">${customer.dni}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Nombre Completo:</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;">${customer.name} ${customer.lastname || ""}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Email:</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;">${customer.email}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Teléfono:</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;">${customer.phone_number || "No proporcionado"}</td>
-          </tr>
-        </table>
-        
-        <div style="margin-top: 30px; text-align: center;">
-          <p style="font-size: 14px; color: #666;">Por favor, ingresa al panel administrativo de AndesTur para procesar y validar esta reservación.</p>
-        </div>
-      </div>
-    `,
-  };
+  const content = `
+    <h2 style="color: #1B4332; border-bottom: 2px solid #C9954B; padding-bottom: 10px;">Nueva Pre-reserva Registrada</h2>
+    <p style="color: #2D2D2D;">Se ha registrado una nueva pre-reserva con los siguientes detalles:</p>
+    <h3 style="color: #C9954B; margin-top: 20px;">Cliente</h3>
+    <table style="width: 100%; border-collapse: collapse; color: #2D2D2D;">
+      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; width: 40%; font-weight: bold;">Nombre:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${customer.name} ${customer.lastname || ''}</td></tr>
+      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">Email:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${customer.email}</td></tr>
+      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">Teléfono:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${customer.phone_number || 'No proporcionado'}</td></tr>
+    </table>
+    <h3 style="color: #C9954B; margin-top: 20px;">Reserva</h3>
+    <table style="width: 100%; border-collapse: collapse; color: #2D2D2D;">
+      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; width: 40%; font-weight: bold;">Reserva ID:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${reservation.id_reservation}</td></tr>
+      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">Paquete:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${packageName}</td></tr>
+      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">Fecha:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${new Date(reservation.reservation_date).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}</td></tr>
+    </table>
+    <div style="background: #F5EDE0; padding: 15px; border-left: 4px solid #C9954B; margin-top: 20px; border-radius: 4px;">
+      <p style="margin: 0; color: #2D2D2D; font-size: 14px;">Ingresa al panel administrativo para procesar esta reservación.</p>
+    </div>`;
 
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✉️ Email de pre-reserva enviado al administrador: ${adminEmail} (ID: ${info.messageId})`);
-    return info;
+    await sendGenericEmail({
+      to_email: adminEmail,
+      subject: 'Nueva Pre-reserva Recibida - AndesTur',
+      html_content: wrapper(content),
+    });
   } catch (error) {
-    console.error("❌ Error al enviar email de pre-reserva al administrador:", error);
+    console.error('Error al enviar correo de pre-reserva al administrador:', error.message);
     throw error;
   }
 };
 
-/**
- * Envía un correo de notificación al cliente confirmando la validación/aprobación de su reserva.
- * @param {Object} customer - Datos del cliente
- * @param {Object} reservation - Datos de la reservación
- * @param {Object} packageData - Datos del paquete de viaje
- */
 export const sendCustomerValidationEmail = async (customer, reservation, packageData) => {
-  const transporter = getTransporter();
-  if (!transporter) return;
+  const packageName = packageData?.name || `Paquete #${reservation.id_package}`;
+  const priceFormatted = packageData
+    ? Number(packageData.price).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })
+    : 'Ver detalles en la web';
+  const departureDate = packageData?.departure_date
+    ? new Date(packageData.departure_date).toLocaleDateString('es-CO', { dateStyle: 'long' })
+    : '';
+  const returnDate = packageData?.return_date
+    ? new Date(packageData.return_date).toLocaleDateString('es-CO', { dateStyle: 'long' })
+    : '';
 
-  const packageName = packageData ? packageData.name : `Paquete #${reservation.id_package}`;
-  const priceFormatted = packageData ? Number(packageData.price).toLocaleString("es-CO", { style: "currency", currency: "COP" }) : "Ver detalles en la web";
-
-  const mailOptions = {
-    from: `"AndesTur Viajes" <${process.env.EMAIL_USER}>`,
-    to: customer.email,
-    subject: `🎉 ¡Tu Reserva ha sido Aprobada! - AndesTur`,
-    html: `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <h2 style="color: #4CAF50; margin-bottom: 5px;">¡Felicidades, ${customer.name}!</h2>
-          <p style="font-size: 16px; color: #666; margin-top: 0;">Tu reservación ha sido procesada y aprobada con éxito.</p>
-        </div>
-        
-        <p>Tu pre-reserva ya ha sido validada por el administrador y tu lugar para este emocionante viaje está totalmente asegurado.</p>
-        
-        <h3 style="color: #2196F3; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 25px;">Detalles de tu Reserva:</h3>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-          <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold; width: 40%;">Reserva ID:</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;">${reservation.id_reservation}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Viaje seleccionado:</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: ${packageData ? 'bold' : 'normal'}; color: #2e7d32;">${packageName}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Fecha de Salida:</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;">${packageData ? new Date(packageData.departure_date).toLocaleDateString("es-CO", { dateStyle: 'long' }) : 'Ver en web'}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Fecha de Retorno:</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;">${packageData ? new Date(packageData.return_date).toLocaleDateString("es-CO", { dateStyle: 'long' }) : 'Ver en web'}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Monto total:</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold; color: #c62828;">${priceFormatted}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Estado de la Reserva:</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;"><span style="background-color: #d4edda; color: #155724; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 14px;">Aprobada / Confirmada</span></td>
-          </tr>
-        </table>
-        
-        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 6px; border-left: 4px solid #2196F3; margin-top: 25px;">
-          <p style="margin: 0; font-size: 14px; color: #555;">
-            <strong>¿Qué sigue ahora?</strong> Nuestro equipo o tu guía turístico se pondrá en contacto contigo previo al viaje para coordinar los puntos de partida e indicaciones adicionales.
-          </p>
-        </div>
-        
-        <p style="margin-top: 30px;">Si tienes alguna pregunta o requieres asistencia, puedes responder directamente a este correo electrónico.</p>
-        <p style="font-weight: bold; color: #4CAF50; margin-top: 20px;">¡Gracias por viajar con AndesTur!</p>
-      </div>
-    `,
-  };
+  const content = `
+    <h2 style="color: #1B4332;">¡Felicidades, ${customer.name}!</h2>
+    <p style="color: #2D6A4F; font-size: 16px;">Tu reservación ha sido procesada y aprobada con éxito.</p>
+    <p style="color: #2D2D2D;">Tu lugar para este viaje está totalmente asegurado.</p>
+    <h3 style="color: #C9954B; border-bottom: 2px solid #C9954B; padding-bottom: 10px; margin-top: 25px;">Detalles de tu Reserva</h3>
+    <table style="width: 100%; border-collapse: collapse; color: #2D2D2D;">
+      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; width: 40%; font-weight: bold;">Reserva ID:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${reservation.id_reservation}</td></tr>
+      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">Paquete:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; color: #2D6A4F; font-weight: bold;">${packageName}</td></tr>
+      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">Salida:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${departureDate}</td></tr>
+      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">Retorno:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${returnDate}</td></tr>
+      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">Total:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold; color: #C9954B;">${priceFormatted}</td></tr>
+    </table>
+    <div style="background: #F5EDE0; padding: 15px; border-left: 4px solid #C9954B; margin-top: 20px; border-radius: 4px;">
+      <p style="margin: 0; color: #2D2D2D; font-size: 14px;"><strong>¿Qué sigue?</strong> Nuestro equipo se pondrá en contacto contigo previo al viaje para coordinar los detalles.</p>
+    </div>
+    <p style="margin-top: 25px; font-weight: bold; color: #1B4332;">¡Gracias por viajar con AndesTur!</p>`;
 
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✉️ Email de validación enviado al cliente: ${customer.email} (ID: ${info.messageId})`);
-    return info;
+    await sendGenericEmail({
+      to_email: customer.email,
+      subject: '¡Tu Reserva ha sido Aprobada! - AndesTur',
+      html_content: wrapper(content),
+    });
   } catch (error) {
-    console.error("❌ Error al enviar email de validación al cliente:", error);
+    console.error('Error al enviar correo de validación al cliente:', error.message);
+    throw error;
+  }
+};
+
+export const sendRejectionEmail = async (customer, reservation, packageData, reason) => {
+  const packageName = packageData?.name || `Paquete #${reservation.id_package}`;
+
+  const content = `
+    <h2 style="color: #9B2226;">Hola ${customer.name},</h2>
+    <p style="color: #2D2D2D;">Lamentamos informarte que tu reservación no pudo ser procesada.</p>
+    <h3 style="color: #9B2226; border-bottom: 2px solid #9B2226; padding-bottom: 10px; margin-top: 25px;">Detalles</h3>
+    <table style="width: 100%; border-collapse: collapse; color: #2D2D2D;">
+      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; width: 40%; font-weight: bold;">Reserva ID:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${reservation.id_reservation}</td></tr>
+      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">Paquete:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${packageName}</td></tr>
+    </table>
+    <div style="background: #FFF5F5; padding: 15px; border-left: 4px solid #9B2226; margin-top: 20px; border-radius: 4px;">
+      <p style="margin: 0; color: #9B2226; font-size: 14px;"><strong>Motivo:</strong> ${reason || 'No se especificó un motivo.'}</p>
+    </div>
+    <p style="color: #2D2D2D; margin-top: 20px;">Si tienes alguna duda, puedes contactarnos respondiendo a este correo.</p>
+    <p style="font-weight: bold; color: #1B4332; margin-top: 20px;">Gracias por tu interés en AndesTur.</p>`;
+
+  try {
+    await sendGenericEmail({
+      to_email: customer.email,
+      subject: 'Reserva No Procesada - AndesTur',
+      html_content: wrapper(content),
+    });
+  } catch (error) {
+    console.error('Error al enviar correo de rechazo al cliente:', error.message);
+    throw error;
+  }
+};
+
+export const sendWeeklyReportEmail = async ({ to_email, week_range, total_reservations }) => {
+  const content = `
+    <div style="text-align: center;">
+      <h2 style="color: #1B4332;">Reporte Semanal</h2>
+      <p style="color: #2D2D2D;">Periodo: <strong>${week_range}</strong></p>
+      <div style="background: #F5EDE0; border-radius: 8px; padding: 20px; margin: 20px 0; border: 2px solid #C9954B; display: inline-block; min-width: 200px;">
+        <p style="font-size: 14px; color: #2D2D2D; margin: 0;">Total de reservaciones</p>
+        <p style="font-size: 48px; color: #1B4332; margin: 10px 0; font-weight: bold;">${total_reservations}</p>
+      </div>
+      <p style="color: #2D2D2D; font-size: 14px;">El PDF del reporte detallado se ha guardado en el servidor.</p>
+    </div>`;
+
+  try {
+    await sendGenericEmail({
+      to_email,
+      subject: `Reporte semanal de reservaciones - ${week_range}`,
+      html_content: wrapper(content),
+    });
+  } catch (error) {
+    console.error('Error al enviar reporte semanal:', error.message);
     throw error;
   }
 };

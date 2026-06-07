@@ -28,6 +28,7 @@ export const reservationsModel = sequelize.define(
         "paid",
         "cancelled",
         "expired",
+        "rejected",
       ),
       defaultValue: "pending",
     },

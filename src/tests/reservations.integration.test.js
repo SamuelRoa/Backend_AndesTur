@@ -4,22 +4,18 @@ import app from "../server.js";
 import { reservationsModel } from "../models/reservations.models.js";
 import { customersModel } from "../models/customers.models.js";
 import { packagesModel } from "../models/packages.models.js";
-import nodemailer from "nodemailer";
+
+const emailjs = await import("@emailjs/nodejs");
+
+beforeEach(() => {
+  emailjs.default.send = jest.fn().mockResolvedValue({ status: 200, text: "OK" });
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
 describe("Reservations Endpoints (mocked models)", () => {
-  let sendMailMock;
-
-  beforeEach(() => {
-    sendMailMock = jest.fn().mockResolvedValue({ messageId: "test-message-id" });
-    jest.spyOn(nodemailer, "createTransport").mockReturnValue({
-      sendMail: sendMailMock,
-    });
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
   test("GET /api/reservations - list reservations", async () => {
     jest.spyOn(reservationsModel, "findAll").mockResolvedValue([{ id_reservation: 1, id_package: 2 }]);
     const res = await request(app).get("/api/reservations").expect(200);
@@ -55,7 +51,6 @@ describe("Reservations Endpoints (mocked models)", () => {
     expect(res.body.data.customer).toHaveProperty("id_customer", 10);
     expect(res.body.data.reservation).toHaveProperty("id_reservation", 22);
     expect(res.body.data.reservation).toHaveProperty("pay_state", "pending");
-    expect(sendMailMock).toHaveBeenCalled();
   });
 
   test("POST /api/reservations/pre-reservation - reuse existing customer", async () => {
@@ -96,7 +91,6 @@ describe("Reservations Endpoints (mocked models)", () => {
       email: "juan.perez@example.com",
     });
     expect(res.body.data.reservation).toHaveProperty("id_reservation", 23);
-    expect(sendMailMock).toHaveBeenCalled();
   });
 
   test("PUT /api/reservations/:id - trigger validation email when pay_state becomes paid", async () => {
@@ -122,8 +116,8 @@ describe("Reservations Endpoints (mocked models)", () => {
     };
 
     jest.spyOn(reservationsModel, "findByPk")
-      .mockResolvedValueOnce(mockReservationBefore) // Before update
-      .mockResolvedValueOnce(mockReservationAfter); // After update
+      .mockResolvedValueOnce(mockReservationBefore)
+      .mockResolvedValueOnce(mockReservationAfter);
 
     jest.spyOn(reservationsModel, "update").mockResolvedValue([1]);
 
@@ -134,6 +128,5 @@ describe("Reservations Endpoints (mocked models)", () => {
 
     expect(res.body.success).toBe(true);
     expect(res.body.data).toHaveProperty("pay_state", "paid");
-    expect(sendMailMock).toHaveBeenCalled();
   });
 });

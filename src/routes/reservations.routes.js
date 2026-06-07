@@ -8,6 +8,7 @@ import {
   deleteReservation,
   createPreReservation,
   queryReservations,
+  rejectReservation,
 } from "../controllers/reservations.controller.js";
 import { validateSchema } from "../middleware/validation.middleware.js";
 import {
@@ -15,6 +16,7 @@ import {
   updateReservationSchema,
   preReservationSchema,
   reservationQuerySchema,
+  rejectReservationSchema,
 } from "../validations/schemas.js";
 
 const router = express.Router();
@@ -36,6 +38,7 @@ router.post("/", validateSchema(createReservationSchema), createReservation);
 router.post("/pre-reservation", validateSchema(preReservationSchema), createPreReservation);
 router.post("/query", reservationQueryLimiter, validateSchema(reservationQuerySchema), queryReservations);
 router.put("/:id", validateSchema(updateReservationSchema), updateReservation);
+router.put("/:id/reject", validateSchema(rejectReservationSchema), rejectReservation);
 router.delete("/:id", deleteReservation);
 
 export default router;
