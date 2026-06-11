@@ -15,6 +15,7 @@ import staffRoutes from "./staff.routes.js";
 import staffPackageRoutes from "./staff_package.routes.js";
 import stateRoutes from "./state.routes.js";
 import vehiclesRoutes from "./vehicles.routes.js";
+import exportsRoutes from "./exports.routes.js";
 import { getHealth } from "../controllers/health.controller.js";
 
 const router = express.Router();
@@ -36,5 +37,6 @@ router.use("/staff", staffRoutes);
 router.use("/staff-packages", staffPackageRoutes);
 router.use("/states", stateRoutes);
 router.use("/vehicles", vehiclesRoutes);
+router.use("/exports", exportsRoutes);
 
 export default router;
