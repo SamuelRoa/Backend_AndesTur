@@ -1,8 +1,20 @@
 import { destinationsModel } from "../models/destinations.models.js";
+import { verifyToken } from "../middleware/auth.middleware.js";
 
 export const getAllDestinations = async (req, res) => {
   try {
-    const destinations = await destinationsModel.findAll();
+    const { active } = req.query;
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    const isAdminRequest = authHeader && verifyToken(authHeader.replace(/^(Bearer|bearer)\s+/, "")).success;
+
+    const where =
+      active === "true"
+        ? { activo: true }
+        : !isAdminRequest
+        ? { activo: true }
+        : undefined;
+
+    const destinations = await destinationsModel.findAll(where ? { where } : {});
     res.json({ success: true, data: destinations });
   } catch (error) {
     res

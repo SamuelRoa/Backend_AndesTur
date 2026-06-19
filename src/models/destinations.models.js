@@ -20,6 +20,15 @@ export const destinationsModel = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: false,
     },
+    activo: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    },
+    image_url: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
   },
   {
     tableName: "destinations",

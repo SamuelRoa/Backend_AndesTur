@@ -185,6 +185,8 @@ export const createDestinationSchema = z.object({
   description: z
     .string()
     .min(5, "Descripción debe tener al menos 5 caracteres"),
+  activo: z.boolean().optional(),
+  image_url: z.string().url("URL de imagen inválida").nullable().optional(),
 });
 
 export const updateDestinationSchema = createDestinationSchema.partial();
