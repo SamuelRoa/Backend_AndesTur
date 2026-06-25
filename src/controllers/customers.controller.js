@@ -1,9 +1,23 @@
 import { customersModel } from "../models/customers.models.js";
+import { getPaginationParams, getPaginationResponse } from "./pagination.js";
 
 export const getAllCustomers = async (req, res) => {
   try {
-    const customers = await customersModel.findAll();
-    res.json({ success: true, data: customers });
+    if (req.query.all === 'true') {
+      const customers = await customersModel.findAll({ order: [['id_customer', 'ASC']] });
+      return res.json({ success: true, data: customers });
+    }
+    const { page, limit, offset } = getPaginationParams(req);
+    const { rows, count } = await customersModel.findAndCountAll({
+      limit,
+      offset,
+      order: [['id_customer', 'ASC']],
+    });
+    res.json({
+      success: true,
+      data: rows,
+      pagination: getPaginationResponse(page, limit, count),
+    });
   } catch (error) {
     res.status(500).json({
       success: false,

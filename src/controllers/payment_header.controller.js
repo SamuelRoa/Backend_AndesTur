@@ -1,9 +1,23 @@
 import { PaymentHeaderModel } from "../models/payment_header.models.js";
+import { getPaginationParams, getPaginationResponse } from "./pagination.js";
 
 export const getAllPaymentHeaders = async (req, res) => {
   try {
-    const headers = await PaymentHeaderModel.findAll();
-    res.json({ success: true, data: headers });
+    if (req.query.all === 'true') {
+      const headers = await PaymentHeaderModel.findAll({ order: [['id_payment_header', 'ASC']] });
+      return res.json({ success: true, data: headers });
+    }
+    const { page, limit, offset } = getPaginationParams(req);
+    const { rows, count } = await PaymentHeaderModel.findAndCountAll({
+      limit,
+      offset,
+      order: [['id_payment_header', 'ASC']],
+    });
+    res.json({
+      success: true,
+      data: rows,
+      pagination: getPaginationResponse(page, limit, count),
+    });
   } catch (error) {
     res.status(500).json({
       success: false,

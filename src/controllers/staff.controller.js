@@ -1,9 +1,23 @@
 import { staffModel } from "../models/staff.models.js";
+import { getPaginationParams, getPaginationResponse } from "./pagination.js";
 
 export const getAllStaff = async (req, res) => {
   try {
-    const staff = await staffModel.findAll();
-    res.json({ success: true, data: staff });
+    if (req.query.all === 'true') {
+      const staff = await staffModel.findAll({ order: [['id_staff', 'ASC']] });
+      return res.json({ success: true, data: staff });
+    }
+    const { page, limit, offset } = getPaginationParams(req);
+    const { rows, count } = await staffModel.findAndCountAll({
+      limit,
+      offset,
+      order: [['id_staff', 'ASC']],
+    });
+    res.json({
+      success: true,
+      data: rows,
+      pagination: getPaginationResponse(page, limit, count),
+    });
   } catch (error) {
     res.status(500).json({
       success: false,

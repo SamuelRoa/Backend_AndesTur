@@ -9,7 +9,10 @@ import {
   updateProfile,
 } from "../controllers/users.controller.js";
 import { validateSchema } from "../middleware/validation.middleware.js";
-import { authenticateToken } from "../middleware/auth.middleware.js";
+import {
+  authenticateToken,
+  authorizeAdmin,
+} from "../middleware/auth.middleware.js";
 import {
   createUserSchema,
   updateUserSchema,
@@ -18,7 +21,7 @@ import {
 
 const router = express.Router();
 
-router.get("/", getAllUsers);
+router.get("/", authenticateToken, authorizeAdmin(), getAllUsers);
 router.get("/profile", authenticateToken, getProfile);
 router.put(
   "/profile_update",
@@ -26,9 +29,21 @@ router.put(
   validateSchema(updateProfileSchema),
   updateProfile,
 );
-router.get("/:id", getUserById);
-router.post("/", validateSchema(createUserSchema), createUser);
-router.put("/:id", validateSchema(updateUserSchema), updateUser);
-router.delete("/:id", deleteUser);
+router.get("/:id", authenticateToken, authorizeAdmin(), getUserById);
+router.post(
+  "/",
+  authenticateToken,
+  authorizeAdmin(),
+  validateSchema(createUserSchema),
+  createUser,
+);
+router.put(
+  "/:id",
+  authenticateToken,
+  authorizeAdmin(),
+  validateSchema(updateUserSchema),
+  updateUser,
+);
+router.delete("/:id", authenticateToken, authorizeAdmin(), deleteUser);
 
 export default router;

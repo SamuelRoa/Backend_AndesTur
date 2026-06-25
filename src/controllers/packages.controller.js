@@ -1,9 +1,23 @@
 import { packagesModel } from "../models/packages.models.js";
+import { getPaginationParams, getPaginationResponse } from "./pagination.js";
 
 export const getAllPackages = async (req, res) => {
   try {
-    const packages = await packagesModel.findAll();
-    res.json({ success: true, data: packages });
+    if (req.query.all === 'true') {
+      const packages = await packagesModel.findAll({ order: [['id_package', 'ASC']] });
+      return res.json({ success: true, data: packages });
+    }
+    const { page, limit, offset } = getPaginationParams(req);
+    const { rows, count } = await packagesModel.findAndCountAll({
+      limit,
+      offset,
+      order: [['id_package', 'ASC']],
+    });
+    res.json({
+      success: true,
+      data: rows,
+      pagination: getPaginationResponse(page, limit, count),
+    });
   } catch (error) {
     res
       .status(500)

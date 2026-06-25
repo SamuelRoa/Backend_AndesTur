@@ -7,14 +7,30 @@ import {
   deleteRole,
 } from "../controllers/roles.controller.js";
 import { validateSchema } from "../middleware/validation.middleware.js";
+import {
+  authenticateToken,
+  authorizeAdmin,
+} from "../middleware/auth.middleware.js";
 import { createRoleSchema, updateRoleSchema } from "../validations/schemas.js";
 
 const router = express.Router();
 
-router.get("/", getAllRoles);
-router.get("/:id", getRoleById);
-router.post("/", validateSchema(createRoleSchema), createRole);
-router.put("/:id", validateSchema(updateRoleSchema), updateRole);
-router.delete("/:id", deleteRole);
+router.get("/", authenticateToken, authorizeAdmin(), getAllRoles);
+router.get("/:id", authenticateToken, authorizeAdmin(), getRoleById);
+router.post(
+  "/",
+  authenticateToken,
+  authorizeAdmin(),
+  validateSchema(createRoleSchema),
+  createRole,
+);
+router.put(
+  "/:id",
+  authenticateToken,
+  authorizeAdmin(),
+  validateSchema(updateRoleSchema),
+  updateRole,
+);
+router.delete("/:id", authenticateToken, authorizeAdmin(), deleteRole);
 
 export default router;

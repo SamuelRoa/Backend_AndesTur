@@ -12,6 +12,11 @@ import {
 } from "../controllers/reservations.controller.js";
 import { validateSchema } from "../middleware/validation.middleware.js";
 import {
+  authenticateToken,
+  authorizeRead,
+  authorizeWrite,
+} from "../middleware/auth.middleware.js";
+import {
   createReservationSchema,
   updateReservationSchema,
   preReservationSchema,
@@ -32,13 +37,41 @@ const reservationQueryLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-router.get("/", getAllReservations);
-router.get("/:id", getReservationById);
-router.post("/", validateSchema(createReservationSchema), createReservation);
+router.get("/", authenticateToken, authorizeRead(), getAllReservations);
+router.get("/:id", authenticateToken, authorizeRead(), getReservationById);
+router.post(
+  "/",
+  authenticateToken,
+  authorizeWrite("reservations"),
+  validateSchema(createReservationSchema),
+  createReservation,
+);
 router.post("/pre-reservation", validateSchema(preReservationSchema), createPreReservation);
-router.post("/query", reservationQueryLimiter, validateSchema(reservationQuerySchema), queryReservations);
-router.put("/:id", validateSchema(updateReservationSchema), updateReservation);
-router.put("/:id/reject", validateSchema(rejectReservationSchema), rejectReservation);
-router.delete("/:id", deleteReservation);
+router.post(
+  "/query",
+  reservationQueryLimiter,
+  validateSchema(reservationQuerySchema),
+  queryReservations,
+);
+router.put(
+  "/:id",
+  authenticateToken,
+  authorizeWrite("reservations"),
+  validateSchema(updateReservationSchema),
+  updateReservation,
+);
+router.put(
+  "/:id/reject",
+  authenticateToken,
+  authorizeWrite("reservations"),
+  validateSchema(rejectReservationSchema),
+  rejectReservation,
+);
+router.delete(
+  "/:id",
+  authenticateToken,
+  authorizeWrite("reservations"),
+  deleteReservation,
+);
 
 export default router;

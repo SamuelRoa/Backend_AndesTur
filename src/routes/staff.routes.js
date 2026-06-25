@@ -8,16 +8,33 @@ import {
 } from "../controllers/staff.controller.js";
 import { validateSchema } from "../middleware/validation.middleware.js";
 import {
+  authenticateToken,
+  authorizeRead,
+  authorizeWrite,
+} from "../middleware/auth.middleware.js";
+import {
   createStaffSchema,
   updateStaffSchema,
 } from "../validations/schemas.js";
 
 const router = express.Router();
 
-router.get("/", getAllStaff);
-router.get("/:id", getStaffById);
-router.post("/", validateSchema(createStaffSchema), createStaff);
-router.put("/:id", validateSchema(updateStaffSchema), updateStaff);
-router.delete("/:id", deleteStaff);
+router.get("/", authenticateToken, authorizeRead(), getAllStaff);
+router.get("/:id", authenticateToken, authorizeRead(), getStaffById);
+router.post(
+  "/",
+  authenticateToken,
+  authorizeWrite("staff"),
+  validateSchema(createStaffSchema),
+  createStaff,
+);
+router.put(
+  "/:id",
+  authenticateToken,
+  authorizeWrite("staff"),
+  validateSchema(updateStaffSchema),
+  updateStaff,
+);
+router.delete("/:id", authenticateToken, authorizeWrite("staff"), deleteStaff);
 
 export default router;

@@ -109,3 +109,58 @@ export const authorizeRole = (...allowedRoles) => {
     }
   };
 };
+
+/**
+ * Middleware para autorizar lectura en cualquier módulo
+ * Admin y operador pueden leer todo
+ */
+export const authorizeRead = () => {
+  return (req, res, next) => {
+    try {
+      if (!req.user) {
+        throw new AppError("Usuario no autenticado", 401);
+      }
+      const allowed = ["admin", "operator"];
+      if (!allowed.includes(req.user.role)) {
+        throw new AppError("Acceso denegado. No tienes permisos de lectura", 403);
+      }
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+};
+
+/**
+ * Middleware para autorizar escritura en un módulo específico
+ * Admin: todo permitido | Operador: solo reservaciones
+ * @param {string} module - Nombre del módulo (e.g. "reservations", "packages")
+ */
+export const authorizeWrite = (module) => {
+  return (req, res, next) => {
+    try {
+      if (!req.user) {
+        throw new AppError("Usuario no autenticado", 401);
+      }
+      if (req.user.role === "admin") {
+        return next();
+      }
+      if (req.user.role === "operator" && module === "reservations") {
+        return next();
+      }
+      throw new AppError(
+        "Acceso denegado. No tienes permisos para modificar este recurso",
+        403,
+      );
+    } catch (error) {
+      next(error);
+    }
+  };
+};
+
+/**
+ * Middleware para rutas exclusivas de administradores
+ */
+export const authorizeAdmin = () => {
+  return authorizeRole("admin");
+};

@@ -1,16 +1,58 @@
 import { reservationsModel } from "../models/reservations.models.js";
 import { customersModel } from "../models/customers.models.js";
 import { packagesModel } from "../models/packages.models.js";
+import { PackagesDestinationsModel } from "../models/packages_destinations.models.js";
 import {
   sendAdminPreReservationEmail,
   sendCustomerValidationEmail,
   sendRejectionEmail,
 } from "../services/email.service.js";
+import { getPaginationParams, getPaginationResponse } from "./pagination.js";
 
 export const getAllReservations = async (req, res) => {
   try {
-    const reservations = await reservationsModel.findAll();
-    res.json({ success: true, data: reservations });
+    const { pay_state, id_destination } = req.query;
+
+    if (req.query.all === 'true') {
+      const reservations = await reservationsModel.findAll({ order: [['id_reservation', 'DESC']] });
+      return res.json({ success: true, data: reservations });
+    }
+
+    const { page, limit, offset } = getPaginationParams(req);
+
+    const where = {};
+    if (pay_state) where.pay_state = pay_state;
+
+    const include = [];
+
+    if (id_destination) {
+      include.push({
+        model: packagesModel,
+        required: true,
+        attributes: [],
+        include: [{
+          model: PackagesDestinationsModel,
+          where: { id_destination: Number(id_destination) },
+          required: true,
+          attributes: [],
+        }],
+      });
+    }
+
+    const { rows, count } = await reservationsModel.findAndCountAll({
+      where,
+      include: include.length > 0 ? include : undefined,
+      limit,
+      offset,
+      distinct: true,
+      order: [['id_reservation', 'DESC']],
+    });
+
+    res.json({
+      success: true,
+      data: rows,
+      pagination: getPaginationResponse(page, limit, count),
+    });
   } catch (error) {
     res.status(500).json({
       success: false,

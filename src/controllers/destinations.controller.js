@@ -1,5 +1,6 @@
 import { destinationsModel } from "../models/destinations.models.js";
 import { verifyToken } from "../middleware/auth.middleware.js";
+import { getPaginationParams, getPaginationResponse } from "./pagination.js";
 
 export const getAllDestinations = async (req, res) => {
   try {
@@ -14,8 +15,24 @@ export const getAllDestinations = async (req, res) => {
         ? { activo: true }
         : undefined;
 
-    const destinations = await destinationsModel.findAll(where ? { where } : {});
-    res.json({ success: true, data: destinations });
+    if (req.query.all === 'true') {
+      const destinations = await destinationsModel.findAll(where ? { where } : { order: [['id_destination', 'ASC']] });
+      return res.json({ success: true, data: destinations });
+    }
+
+    const { page, limit, offset } = getPaginationParams(req);
+    const { rows, count } = await destinationsModel.findAndCountAll({
+      where,
+      limit,
+      offset,
+      distinct: true,
+      order: [['id_destination', 'ASC']],
+    });
+    res.json({
+      success: true,
+      data: rows,
+      pagination: getPaginationResponse(page, limit, count),
+    });
   } catch (error) {
     res
       .status(500)

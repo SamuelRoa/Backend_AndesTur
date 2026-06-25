@@ -13,7 +13,7 @@ describe("Auth endpoints (mocked models)", () => {
 
   test("POST /api/auth/register - success", async () => {
     jest.spyOn(usersModel, "findOne").mockResolvedValue(null);
-    jest.spyOn(rolesModel, "findOne").mockResolvedValue({ id_role: 1, type: "user" });
+    jest.spyOn(rolesModel, "findOne").mockResolvedValue({ id_role: 2, type: "operator" });
     jest.spyOn(usersModel, "create").mockImplementation(async (obj) => ({
       id_user: 10,
       username: obj.username,
@@ -30,10 +30,10 @@ describe("Auth endpoints (mocked models)", () => {
   });
 
   test("POST /api/auth/login - success", async () => {
-    const fakeUser = { id_user: 5, username: "u", email: "u@example.com", password: "hashed", state: "active", id_role: 1 };
+    const fakeUser = { id_user: 5, username: "u", email: "u@example.com", password: "hashed", state: "active", id_role: 2 };
     jest.spyOn(usersModel, "findOne").mockResolvedValue(fakeUser);
     jest.spyOn(bcrypt, "compare").mockResolvedValue(true);
-    jest.spyOn(rolesModel, "findByPk").mockResolvedValue({ id_role: 1, type: "user" });
+    jest.spyOn(rolesModel, "findByPk").mockResolvedValue({ id_role: 2, type: "operator" });
 
     const res = await request(app)
       .post("/api/auth/login")
@@ -45,7 +45,7 @@ describe("Auth endpoints (mocked models)", () => {
   });
 
   test("GET /api/auth/verify - valid token", async () => {
-    const payload = { id_user: 99, email: "x@x.com", username: "x", role: "user" };
+    const payload = { id_user: 99, email: "x@x.com", username: "x", role: "operator" };
     const token = generateToken(payload);
 
     const res = await request(app).get("/api/auth/verify").set("Authorization", `Bearer ${token}`).expect(200);
@@ -55,7 +55,7 @@ describe("Auth endpoints (mocked models)", () => {
   });
 
   test("GET /api/auth/profile - returns profile", async () => {
-    const payload = { id_user: 20, email: "p@p.com", username: "p", role: "user" };
+    const payload = { id_user: 20, email: "p@p.com", username: "p", role: "operator" };
     const token = generateToken(payload);
 
     jest.spyOn(usersModel, "findByPk").mockResolvedValue({
@@ -63,10 +63,10 @@ describe("Auth endpoints (mocked models)", () => {
       email: payload.email,
       username: payload.username,
       state: "active",
-      id_role: 1,
-      toJSON() { return { id_user: 20, email: payload.email, username: payload.username, state: "active", id_role: 1 }; }
+      id_role: 2,
+      toJSON() { return { id_user: 20, email: payload.email, username: payload.username, state: "active", id_role: 2 }; }
     });
-    jest.spyOn(rolesModel, "findByPk").mockResolvedValue({ id_role: 1, type: "user" });
+    jest.spyOn(rolesModel, "findByPk").mockResolvedValue({ id_role: 2, type: "operator" });
 
     const res = await request(app).get("/api/auth/profile").set("Authorization", `Bearer ${token}`).expect(200);
 

@@ -36,16 +36,15 @@ export const register = async (req, res) => {
       });
     }
 
-    // Si no se envía id_role, asignar el rol 'user' por defecto
+    // Si no se envía id_role, asignar el rol 'operator' por defecto
     let role = null;
     let roleIdToUse = id_role;
     if (!roleIdToUse) {
-      role = await rolesModel.findOne({ where: { type: "user" } });
+      role = await rolesModel.findOne({ where: { type: "operator" } });
       if (!role) {
-        // Crear rol 'user' si no existe
         role = await rolesModel.create({
-          type: "user",
-          description: "Usuario por defecto",
+          type: "operator",
+          description: "Operador turístico",
         });
       }
       roleIdToUse = role.id_role;

@@ -15,9 +15,9 @@ const seed = async () => {
     if (rolesCount === 0) {
       await rolesModel.bulkCreate([
         { type: "admin", description: "Administrador del sistema" },
-        { type: "user", description: "Usuario regular" },
+        { type: "operator", description: "Operador turístico" },
       ]);
-      console.log("Roles creados: admin, user");
+      console.log("Roles creados: admin, operator");
     } else {
       console.log("Roles ya existen, saltando...");
     }

@@ -8,16 +8,33 @@ import {
 } from "../controllers/vehicles.controller.js";
 import { validateSchema } from "../middleware/validation.middleware.js";
 import {
+  authenticateToken,
+  authorizeRead,
+  authorizeWrite,
+} from "../middleware/auth.middleware.js";
+import {
   createVehicleSchema,
   updateVehicleSchema,
 } from "../validations/schemas.js";
 
 const router = express.Router();
 
-router.get("/", getAllVehicles);
-router.get("/:id", getVehicleById);
-router.post("/", validateSchema(createVehicleSchema), createVehicle);
-router.put("/:id", validateSchema(updateVehicleSchema), updateVehicle);
-router.delete("/:id", deleteVehicle);
+router.get("/", authenticateToken, authorizeRead(), getAllVehicles);
+router.get("/:id", authenticateToken, authorizeRead(), getVehicleById);
+router.post(
+  "/",
+  authenticateToken,
+  authorizeWrite("vehicles"),
+  validateSchema(createVehicleSchema),
+  createVehicle,
+);
+router.put(
+  "/:id",
+  authenticateToken,
+  authorizeWrite("vehicles"),
+  validateSchema(updateVehicleSchema),
+  updateVehicle,
+);
+router.delete("/:id", authenticateToken, authorizeWrite("vehicles"), deleteVehicle);
 
 export default router;

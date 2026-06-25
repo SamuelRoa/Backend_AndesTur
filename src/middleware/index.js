@@ -7,6 +7,9 @@ export {
   decodeToken,
   authenticateToken,
   authorizeRole,
+  authorizeRead,
+  authorizeWrite,
+  authorizeAdmin,
 } from "./auth.middleware.js";
 
 export { validateSchema, validateData } from "./validation.middleware.js";

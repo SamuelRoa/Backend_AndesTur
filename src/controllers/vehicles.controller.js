@@ -1,9 +1,23 @@
 import { VehiclesModel } from "../models/vehicles.models.js";
+import { getPaginationParams, getPaginationResponse } from "./pagination.js";
 
 export const getAllVehicles = async (req, res) => {
   try {
-    const vehicles = await VehiclesModel.findAll();
-    res.json({ success: true, data: vehicles });
+    if (req.query.all === 'true') {
+      const vehicles = await VehiclesModel.findAll({ order: [['id_vehicle', 'ASC']] });
+      return res.json({ success: true, data: vehicles });
+    }
+    const { page, limit, offset } = getPaginationParams(req);
+    const { rows, count } = await VehiclesModel.findAndCountAll({
+      limit,
+      offset,
+      order: [['id_vehicle', 'ASC']],
+    });
+    res.json({
+      success: true,
+      data: rows,
+      pagination: getPaginationResponse(page, limit, count),
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
