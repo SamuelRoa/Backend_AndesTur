@@ -219,10 +219,37 @@ export const updateProfile = async (req, res) => {
 
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await usersModel.findAll({
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const { count, rows } = await usersModel.findAndCountAll({
       attributes: { exclude: ["password"] },
+      include: [{ model: rolesModel, as: "role", attributes: ["type"] }],
+      limit,
+      offset,
+      order: [["created_at", "DESC"]],
     });
-    res.json({ success: true, data: users });
+
+    const data = rows.map((user) => {
+      const json = user.toJSON();
+      return {
+        ...json,
+        role: json.role?.type || null,
+        activo: json.state === "active",
+      };
+    });
+
+    res.json({
+      success: true,
+      data,
+      pagination: {
+        page,
+        limit,
+        total: count,
+        totalPages: Math.ceil(count / limit),
+      },
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -235,28 +262,50 @@ export const getAllUsers = async (req, res) => {
 export const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await usersModel.findByPk(id);
-
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Usuario no encontrado" });
-    }
-
-    res.json({ success: true, data: user });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error buscando usuario",
-      error: error.message,
+    const user = await usersModel.findByPk(id, {
+      attributes: { exclude: ["password"] },
+      include: [{ model: rolesModel, as: "role", attributes: ["type"] }],
     });
-  }
-};
+
+     if (!user) {
+       return res
+         .status(404)
+         .json({ success: false, message: "Usuario no encontrado" });
+     }
+
+     const json = user.toJSON();
+     res.json({
+       success: true,
+       data: { ...json, role: json.role?.type || null, activo: json.state === "active" },
+     });
+   } catch (error) {
+     res.status(500).json({
+       success: false,
+       message: "Error buscando usuario",
+       error: error.message,
+     });
+   }
+ };
 
 export const createUser = async (req, res) => {
   try {
-    const user = await usersModel.create(req.body);
-    res.status(201).json({ success: true, data: user });
+    // Ensure role is set via id_role
+    const body = { ...req.body };
+    if (body.role && !body.id_role) {
+      const role = await rolesModel.findOne({ where: { type: body.role } });
+      if (role) body.id_role = role.id_role;
+      delete body.role;
+    }
+    const user = await usersModel.create(body);
+    const safeUser = await usersModel.findByPk(user.id_user, {
+      attributes: { exclude: ["password"] },
+      include: [{ model: rolesModel, as: "role", attributes: ["type"] }],
+    });
+    const createJson = safeUser.toJSON();
+    res.status(201).json({
+      success: true,
+      data: { ...createJson, role: createJson.role?.type || null, activo: createJson.state === "active" },
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -269,7 +318,22 @@ export const createUser = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const [updated] = await usersModel.update(req.body, {
+    const body = { ...req.body };
+
+    // Map role to id_role if provided as string
+    if (body.role && typeof body.role === "string") {
+      const role = await rolesModel.findOne({ where: { type: body.role } });
+      if (role) body.id_role = role.id_role;
+      delete body.role;
+    }
+
+    // Map activo to state if provided
+    if (body.activo !== undefined) {
+      body.state = body.activo ? "active" : "inactive";
+      delete body.activo;
+    }
+
+    const [updated] = await usersModel.update(body, {
       where: { id_user: id },
     });
 
@@ -279,8 +343,15 @@ export const updateUser = async (req, res) => {
         .json({ success: false, message: "Usuario no encontrado" });
     }
 
-    const updatedUser = await usersModel.findByPk(id);
-    res.json({ success: true, data: updatedUser });
+    const updatedUser = await usersModel.findByPk(id, {
+      attributes: { exclude: ["password"] },
+      include: [{ model: rolesModel, as: "role", attributes: ["type"] }],
+    });
+    const updateJson = updatedUser.toJSON();
+    res.json({
+      success: true,
+      data: { ...updateJson, role: updateJson.role?.type || null, activo: updateJson.state === "active" },
+    });
   } catch (error) {
     res.status(500).json({
       success: false,

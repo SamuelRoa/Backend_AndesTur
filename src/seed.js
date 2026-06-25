@@ -22,19 +22,25 @@ const seed = async () => {
       console.log("Roles ya existen, saltando...");
     }
 
-    const usersCount = await usersModel.count();
-    if (usersCount === 0) {
-      const adminRole = await rolesModel.findOne({ where: { type: "admin" } });
+    const adminRole = await rolesModel.findOne({ where: { type: "admin" } });
+    const existingAdmin = await usersModel.findOne({ where: { email: "admin@andetur.com" } });
+
+    if (!existingAdmin) {
       await usersModel.create({
         username: "admin",
-        email: "admin@andestur.com",
-        password: "Admin123!",
+        email: "admin@andetur.com",
+        password: "admin123",
         state: "active",
         id_role: adminRole.id_role,
       });
-      console.log("Usuario admin creado: admin@andestur.com / Admin123!");
+      console.log("Usuario admin creado: admin@andetur.com / admin123");
     } else {
-      console.log("Usuarios ya existen, saltando...");
+      existingAdmin.username = "admin";
+      existingAdmin.password = "admin123";
+      existingAdmin.state = "active";
+      existingAdmin.id_role = adminRole.id_role;
+      await existingAdmin.save();
+      console.log("Usuario admin actualizado: admin@andetur.com / admin123");
     }
 
     console.log("Seed completado exitosamente");

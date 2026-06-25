@@ -106,6 +106,7 @@ export const createUserSchema = z.object({
   email: emailSchema,
   state: userStateEnum.default("active"),
   id_role: idSchema.optional(),
+  role: z.string().optional(),
 });
 
 export const updateUserSchema = z.object({
@@ -114,6 +115,8 @@ export const updateUserSchema = z.object({
   email: emailSchema.optional(),
   state: userStateEnum.optional(),
   id_role: idSchema.optional(),
+  role: z.string().optional(),
+  activo: z.boolean().optional(),
 });
 
 export const updateProfileSchema = z.object({
