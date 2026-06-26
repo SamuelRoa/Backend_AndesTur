@@ -16,7 +16,7 @@ import { createDestinationSchema, updateDestinationSchema } from "../validations
 
 const router = express.Router();
 
-router.get("/", authenticateToken, authorizeRead(), getAllDestinations);
+router.get("/", getAllDestinations);
 router.get("/:id", authenticateToken, authorizeRead(), getDestinationById);
 router.post(
   "/",
