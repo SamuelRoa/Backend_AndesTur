@@ -7,8 +7,7 @@ export {
   decodeToken,
   authenticateToken,
   authorizeRole,
-  authorizeRead,
-  authorizeWrite,
+  requirePermission,
   authorizeAdmin,
 } from "./auth.middleware.js";
 
