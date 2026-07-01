@@ -65,12 +65,12 @@ export const register = async (req, res) => {
       state,
     });
 
-    // Generar token
     const token = generateToken({
       id_user: newUser.id_user,
       email: newUser.email,
       username: newUser.username,
       role: role.type,
+      permissions: role.permissions || [],
     });
 
     res.status(201).json({
@@ -140,6 +140,7 @@ export const login = async (req, res) => {
     // Cargar rol del usuario desde la tabla roles
     const userRole = await rolesModel.findByPk(user.id_role);
     const roleType = userRole?.type || "user";
+    const permissions = userRole?.permissions || [];
 
     // Generar token
     const token = generateToken({
@@ -147,6 +148,7 @@ export const login = async (req, res) => {
       email: user.email,
       username: user.username,
       role: roleType,
+      permissions: permissions,
     });
 
     res.json({
@@ -158,6 +160,7 @@ export const login = async (req, res) => {
         email: user.email,
         state: user.state,
         role: roleType,
+        permissions: permissions,
       },
       token,
     });
@@ -207,9 +210,8 @@ export const getProfile = async (req, res) => {
       success: true,
       data: {
         ...user.toJSON(),
-        role: userRole
-          ? { id_role: userRole.id_role, type: userRole.type }
-          : null,
+        role: userRole?.type || "user",
+        permissions: userRole?.permissions || [],
       },
     });
   } catch (error) {

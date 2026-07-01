@@ -225,7 +225,7 @@ export const getAllUsers = async (req, res) => {
 
     const { count, rows } = await usersModel.findAndCountAll({
       attributes: { exclude: ["password"] },
-      include: [{ model: rolesModel, as: "role", attributes: ["type"] }],
+      include: [{ model: rolesModel, as: "role", attributes: ["type", "permissions"] }],
       limit,
       offset,
       order: [["created_at", "DESC"]],
@@ -236,6 +236,7 @@ export const getAllUsers = async (req, res) => {
       return {
         ...json,
         role: json.role?.type || null,
+        permissions: json.role?.permissions || [],
         activo: json.state === "active",
       };
     });
@@ -264,7 +265,7 @@ export const getUserById = async (req, res) => {
     const { id } = req.params;
     const user = await usersModel.findByPk(id, {
       attributes: { exclude: ["password"] },
-      include: [{ model: rolesModel, as: "role", attributes: ["type"] }],
+      include: [{ model: rolesModel, as: "role", attributes: ["type", "permissions"] }],
     });
 
      if (!user) {
@@ -276,7 +277,7 @@ export const getUserById = async (req, res) => {
      const json = user.toJSON();
      res.json({
        success: true,
-       data: { ...json, role: json.role?.type || null, activo: json.state === "active" },
+       data: { ...json, role: json.role?.type || null, permissions: json.role?.permissions || [], activo: json.state === "active" },
      });
    } catch (error) {
      res.status(500).json({
@@ -299,12 +300,12 @@ export const createUser = async (req, res) => {
     const user = await usersModel.create(body);
     const safeUser = await usersModel.findByPk(user.id_user, {
       attributes: { exclude: ["password"] },
-      include: [{ model: rolesModel, as: "role", attributes: ["type"] }],
+      include: [{ model: rolesModel, as: "role", attributes: ["type", "permissions"] }],
     });
     const createJson = safeUser.toJSON();
     res.status(201).json({
       success: true,
-      data: { ...createJson, role: createJson.role?.type || null, activo: createJson.state === "active" },
+      data: { ...createJson, role: createJson.role?.type || null, permissions: createJson.role?.permissions || [], activo: createJson.state === "active" },
     });
   } catch (error) {
     res.status(500).json({
@@ -345,12 +346,12 @@ export const updateUser = async (req, res) => {
 
     const updatedUser = await usersModel.findByPk(id, {
       attributes: { exclude: ["password"] },
-      include: [{ model: rolesModel, as: "role", attributes: ["type"] }],
+      include: [{ model: rolesModel, as: "role", attributes: ["type", "permissions"] }],
     });
     const updateJson = updatedUser.toJSON();
     res.json({
       success: true,
-      data: { ...updateJson, role: updateJson.role?.type || null, activo: updateJson.state === "active" },
+      data: { ...updateJson, role: updateJson.role?.type || null, permissions: updateJson.role?.permissions || [], activo: updateJson.state === "active" },
     });
   } catch (error) {
     res.status(500).json({

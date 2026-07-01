@@ -16,6 +16,11 @@ export const rolesModel = sequelize.define(
     description: {
       type: DataTypes.TEXT,
     },
+    permissions: {
+      type: DataTypes.JSONB,
+      defaultValue: [],
+      allowNull: false,
+    },
   },
   {
     tableName: "role",

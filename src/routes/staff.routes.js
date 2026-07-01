@@ -9,8 +9,8 @@ import {
 import { validateSchema } from "../middleware/validation.middleware.js";
 import {
   authenticateToken,
-  authorizeRead,
-  authorizeWrite,
+  requirePermission,
+  
 } from "../middleware/auth.middleware.js";
 import {
   createStaffSchema,
@@ -19,22 +19,22 @@ import {
 
 const router = express.Router();
 
-router.get("/", authenticateToken, authorizeRead(), getAllStaff);
-router.get("/:id", authenticateToken, authorizeRead(), getStaffById);
+router.get("/", authenticateToken, requirePermission("staff:read"), getAllStaff);
+router.get("/:id", authenticateToken, requirePermission("staff:read"), getStaffById);
 router.post(
   "/",
   authenticateToken,
-  authorizeWrite("staff"),
+  requirePermission("staff:write"),
   validateSchema(createStaffSchema),
   createStaff,
 );
 router.put(
   "/:id",
   authenticateToken,
-  authorizeWrite("staff"),
+  requirePermission("staff:write"),
   validateSchema(updateStaffSchema),
   updateStaff,
 );
-router.delete("/:id", authenticateToken, authorizeWrite("staff"), deleteStaff);
+router.delete("/:id", authenticateToken, requirePermission("staff:write"), deleteStaff);
 
 export default router;

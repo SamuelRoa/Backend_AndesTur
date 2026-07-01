@@ -111,45 +111,30 @@ export const authorizeRole = (...allowedRoles) => {
 };
 
 /**
- * Middleware para autorizar lectura en cualquier módulo
- * Admin y operador pueden leer todo
+ * Middleware para requerir un permiso específico
+ * Verifica si el usuario tiene "*" (admin) o el permiso exacto
+ * @param {string} requiredPermission - Permiso requerido (e.g. "reservations:read")
  */
-export const authorizeRead = () => {
+export const requirePermission = (requiredPermission) => {
   return (req, res, next) => {
     try {
       if (!req.user) {
         throw new AppError("Usuario no autenticado", 401);
       }
-      const allowed = ["admin", "operator"];
-      if (!allowed.includes(req.user.role)) {
-        throw new AppError("Acceso denegado. No tienes permisos de lectura", 403);
+      
+      const userPermissions = req.user.permissions || [];
+      
+      // Admin tiene acceso total
+      if (userPermissions.includes("*")) {
+        return next();
       }
-      next();
-    } catch (error) {
-      next(error);
-    }
-  };
-};
 
-/**
- * Middleware para autorizar escritura en un módulo específico
- * Admin: todo permitido | Operador: solo reservaciones
- * @param {string} module - Nombre del módulo (e.g. "reservations", "packages")
- */
-export const authorizeWrite = (module) => {
-  return (req, res, next) => {
-    try {
-      if (!req.user) {
-        throw new AppError("Usuario no autenticado", 401);
-      }
-      if (req.user.role === "admin") {
+      if (userPermissions.includes(requiredPermission)) {
         return next();
       }
-      if (req.user.role === "operator" && module === "reservations") {
-        return next();
-      }
+
       throw new AppError(
-        "Acceso denegado. No tienes permisos para modificar este recurso",
+        `Acceso denegado. Se requiere el permiso: ${requiredPermission}`,
         403,
       );
     } catch (error) {
@@ -162,5 +147,5 @@ export const authorizeWrite = (module) => {
  * Middleware para rutas exclusivas de administradores
  */
 export const authorizeAdmin = () => {
-  return authorizeRole("admin");
+  return requirePermission("*");
 };

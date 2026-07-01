@@ -9,8 +9,8 @@ import {
 import { validateSchema } from "../middleware/validation.middleware.js";
 import {
   authenticateToken,
-  authorizeRead,
-  authorizeWrite,
+  requirePermission,
+  
 } from "../middleware/auth.middleware.js";
 import {
   createVehicleSchema,
@@ -19,22 +19,22 @@ import {
 
 const router = express.Router();
 
-router.get("/", authenticateToken, authorizeRead(), getAllVehicles);
-router.get("/:id", authenticateToken, authorizeRead(), getVehicleById);
+router.get("/", authenticateToken, requirePermission("vehicles:read"), getAllVehicles);
+router.get("/:id", authenticateToken, requirePermission("vehicles:read"), getVehicleById);
 router.post(
   "/",
   authenticateToken,
-  authorizeWrite("vehicles"),
+  requirePermission("vehicles:write"),
   validateSchema(createVehicleSchema),
   createVehicle,
 );
 router.put(
   "/:id",
   authenticateToken,
-  authorizeWrite("vehicles"),
+  requirePermission("vehicles:write"),
   validateSchema(updateVehicleSchema),
   updateVehicle,
 );
-router.delete("/:id", authenticateToken, authorizeWrite("vehicles"), deleteVehicle);
+router.delete("/:id", authenticateToken, requirePermission("vehicles:write"), deleteVehicle);
 
 export default router;

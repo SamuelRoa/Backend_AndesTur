@@ -9,8 +9,8 @@ import {
 import { validateSchema } from "../middleware/validation.middleware.js";
 import {
   authenticateToken,
-  authorizeRead,
-  authorizeWrite,
+  requirePermission,
+  
 } from "../middleware/auth.middleware.js";
 import {
   createCustomerSchema,
@@ -19,22 +19,22 @@ import {
 
 const router = express.Router();
 
-router.get("/", authenticateToken, authorizeRead(), getAllCustomers);
-router.get("/:id", authenticateToken, authorizeRead(), getCustomerById);
+router.get("/", authenticateToken, requirePermission("customers:read"), getAllCustomers);
+router.get("/:id", authenticateToken, requirePermission("customers:read"), getCustomerById);
 router.post(
   "/",
   authenticateToken,
-  authorizeWrite("customers"),
+  requirePermission("customers:write"),
   validateSchema(createCustomerSchema),
   createCustomer,
 );
 router.put(
   "/:id",
   authenticateToken,
-  authorizeWrite("customers"),
+  requirePermission("customers:write"),
   validateSchema(updateCustomerSchema),
   updateCustomer,
 );
-router.delete("/:id", authenticateToken, authorizeWrite("customers"), deleteCustomer);
+router.delete("/:id", authenticateToken, requirePermission("customers:write"), deleteCustomer);
 
 export default router;

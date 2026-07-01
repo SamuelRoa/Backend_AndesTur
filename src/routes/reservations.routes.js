@@ -13,8 +13,8 @@ import {
 import { validateSchema } from "../middleware/validation.middleware.js";
 import {
   authenticateToken,
-  authorizeRead,
-  authorizeWrite,
+  requirePermission,
+  
 } from "../middleware/auth.middleware.js";
 import {
   createReservationSchema,
@@ -37,12 +37,12 @@ const reservationQueryLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-router.get("/", authenticateToken, authorizeRead(), getAllReservations);
-router.get("/:id", authenticateToken, authorizeRead(), getReservationById);
+router.get("/", authenticateToken, requirePermission("reservations:read"), getAllReservations);
+router.get("/:id", authenticateToken, requirePermission("reservations:read"), getReservationById);
 router.post(
   "/",
   authenticateToken,
-  authorizeWrite("reservations"),
+  requirePermission("reservations:write"),
   validateSchema(createReservationSchema),
   createReservation,
 );
@@ -56,21 +56,21 @@ router.post(
 router.put(
   "/:id",
   authenticateToken,
-  authorizeWrite("reservations"),
+  requirePermission("reservations:write"),
   validateSchema(updateReservationSchema),
   updateReservation,
 );
 router.put(
   "/:id/reject",
   authenticateToken,
-  authorizeWrite("reservations"),
+  requirePermission("reservations:write"),
   validateSchema(rejectReservationSchema),
   rejectReservation,
 );
 router.delete(
   "/:id",
   authenticateToken,
-  authorizeWrite("reservations"),
+  requirePermission("reservations:write"),
   deleteReservation,
 );
 

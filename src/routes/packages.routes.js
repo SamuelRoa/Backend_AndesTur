@@ -9,8 +9,8 @@ import {
 import { validateSchema } from "../middleware/validation.middleware.js";
 import {
   authenticateToken,
-  authorizeRead,
-  authorizeWrite,
+  requirePermission,
+  
 } from "../middleware/auth.middleware.js";
 import {
   createPackageSchema,
@@ -19,22 +19,22 @@ import {
 
 const router = express.Router();
 
-router.get("/", authenticateToken, authorizeRead(), getAllPackages);
-router.get("/:id", authenticateToken, authorizeRead(), getPackageById);
+router.get("/", authenticateToken, requirePermission("packages:read"), getAllPackages);
+router.get("/:id", authenticateToken, requirePermission("packages:read"), getPackageById);
 router.post(
   "/",
   authenticateToken,
-  authorizeWrite("packages"),
+  requirePermission("packages:write"),
   validateSchema(createPackageSchema),
   createPackage,
 );
 router.put(
   "/:id",
   authenticateToken,
-  authorizeWrite("packages"),
+  requirePermission("packages:write"),
   validateSchema(updatePackageSchema),
   updatePackage,
 );
-router.delete("/:id", authenticateToken, authorizeWrite("packages"), deletePackage);
+router.delete("/:id", authenticateToken, requirePermission("packages:write"), deletePackage);
 
 export default router;

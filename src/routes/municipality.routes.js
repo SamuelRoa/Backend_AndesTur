@@ -9,33 +9,33 @@ import {
 import { validateSchema } from "../middleware/validation.middleware.js";
 import {
   authenticateToken,
-  authorizeRead,
-  authorizeWrite,
+  requirePermission,
+  
 } from "../middleware/auth.middleware.js";
 import { createMunicipalitySchema, updateMunicipalitySchema } from "../validations/schemas.js";
 
 const router = express.Router();
 
-router.get("/", authenticateToken, authorizeRead(), getAllMunicipalities);
-router.get("/:id", authenticateToken, authorizeRead(), getMunicipalityById);
+router.get("/", authenticateToken, requirePermission("municipality:read"), getAllMunicipalities);
+router.get("/:id", authenticateToken, requirePermission("municipality:read"), getMunicipalityById);
 router.post(
   "/",
   authenticateToken,
-  authorizeWrite("municipalities"),
+  requirePermission("municipalities:write"),
   validateSchema(createMunicipalitySchema),
   createMunicipality,
 );
 router.put(
   "/:id",
   authenticateToken,
-  authorizeWrite("municipalities"),
+  requirePermission("municipalities:write"),
   validateSchema(updateMunicipalitySchema),
   updateMunicipality,
 );
 router.delete(
   "/:id",
   authenticateToken,
-  authorizeWrite("municipalities"),
+  requirePermission("municipalities:write"),
   deleteMunicipality,
 );
 

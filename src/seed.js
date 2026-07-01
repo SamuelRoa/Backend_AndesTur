@@ -11,15 +11,28 @@ const seed = async () => {
     await sequelize.sync();
     console.log("Tablas sincronizadas");
 
+    try {
+      await sequelize.query('ALTER TABLE role ADD COLUMN IF NOT EXISTS permissions JSONB DEFAULT \'[]\'');
+      console.log("Columna permissions agregada/verificada en tabla role");
+    } catch (e) {
+      console.log("Nota: Columna permissions ya existía o error menor:", e.message);
+    }
+
     const rolesCount = await rolesModel.count();
     if (rolesCount === 0) {
       await rolesModel.bulkCreate([
-        { type: "admin", description: "Administrador del sistema" },
-        { type: "operator", description: "Operador turístico" },
+        { type: "admin", description: "Administrador del sistema", permissions: ["*"] },
+        { type: "operator", description: "Operador turístico", permissions: ["reservations:read", "reservations:write", "destinations:read", "packages:read", "customers:read", "customers:write"] },
       ]);
       console.log("Roles creados: admin, operator");
     } else {
-      console.log("Roles ya existen, saltando...");
+      // Ensure existing roles have the correct default permissions if they don't have them
+      await rolesModel.update({ permissions: ["*"] }, { where: { type: "admin" } });
+      await rolesModel.update(
+        { permissions: ["reservations:read", "reservations:write", "destinations:read", "packages:read", "customers:read", "customers:write"] }, 
+        { where: { type: "operator" } }
+      );
+      console.log("Roles ya existen, permisos actualizados...");
     }
 
     const adminRole = await rolesModel.findOne({ where: { type: "admin" } });

@@ -9,33 +9,33 @@ import {
 import { validateSchema } from "../middleware/validation.middleware.js";
 import {
   authenticateToken,
-  authorizeRead,
-  authorizeWrite,
+  requirePermission,
+  
 } from "../middleware/auth.middleware.js";
 import { createStaffPackageSchema, updateStaffPackageSchema } from "../validations/schemas.js";
 
 const router = express.Router();
 
-router.get("/", authenticateToken, authorizeRead(), getAllStaffPackages);
-router.get("/:id", authenticateToken, authorizeRead(), getStaffPackageById);
+router.get("/", authenticateToken, requirePermission("staff-package:read"), getAllStaffPackages);
+router.get("/:id", authenticateToken, requirePermission("staff-package:read"), getStaffPackageById);
 router.post(
   "/",
   authenticateToken,
-  authorizeWrite("staff-packages"),
+  requirePermission("staff-packages:write"),
   validateSchema(createStaffPackageSchema),
   createStaffPackage,
 );
 router.put(
   "/:id",
   authenticateToken,
-  authorizeWrite("staff-packages"),
+  requirePermission("staff-packages:write"),
   validateSchema(updateStaffPackageSchema),
   updateStaffPackage,
 );
 router.delete(
   "/:id",
   authenticateToken,
-  authorizeWrite("staff-packages"),
+  requirePermission("staff-packages:write"),
   deleteStaffPackage,
 );
 

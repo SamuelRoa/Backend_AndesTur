@@ -9,33 +9,33 @@ import {
 import { validateSchema } from "../middleware/validation.middleware.js";
 import {
   authenticateToken,
-  authorizeRead,
-  authorizeWrite,
+  requirePermission,
+  
 } from "../middleware/auth.middleware.js";
 import { createPaymentDetailSchema, updatePaymentDetailSchema } from "../validations/schemas.js";
 
 const router = express.Router();
 
-router.get("/", authenticateToken, authorizeRead(), getAllPaymentDetails);
-router.get("/:id", authenticateToken, authorizeRead(), getPaymentDetailById);
+router.get("/", authenticateToken, requirePermission("payment-detail:read"), getAllPaymentDetails);
+router.get("/:id", authenticateToken, requirePermission("payment-detail:read"), getPaymentDetailById);
 router.post(
   "/",
   authenticateToken,
-  authorizeWrite("payment-details"),
+  requirePermission("payment-details:write"),
   validateSchema(createPaymentDetailSchema),
   createPaymentDetail,
 );
 router.put(
   "/:id",
   authenticateToken,
-  authorizeWrite("payment-details"),
+  requirePermission("payment-details:write"),
   validateSchema(updatePaymentDetailSchema),
   updatePaymentDetail,
 );
 router.delete(
   "/:id",
   authenticateToken,
-  authorizeWrite("payment-details"),
+  requirePermission("payment-details:write"),
   deletePaymentDetail,
 );
 

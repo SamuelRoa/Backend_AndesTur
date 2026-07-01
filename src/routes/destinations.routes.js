@@ -9,29 +9,29 @@ import {
 import { validateSchema } from "../middleware/validation.middleware.js";
 import {
   authenticateToken,
-  authorizeRead,
-  authorizeWrite,
+  requirePermission,
+  
 } from "../middleware/auth.middleware.js";
 import { createDestinationSchema, updateDestinationSchema } from "../validations/schemas.js";
 
 const router = express.Router();
 
 router.get("/", getAllDestinations);
-router.get("/:id", authenticateToken, authorizeRead(), getDestinationById);
+router.get("/:id", authenticateToken, requirePermission("destinations:read"), getDestinationById);
 router.post(
   "/",
   authenticateToken,
-  authorizeWrite("destinations"),
+  requirePermission("destinations:write"),
   validateSchema(createDestinationSchema),
   createDestination,
 );
 router.put(
   "/:id",
   authenticateToken,
-  authorizeWrite("destinations"),
+  requirePermission("destinations:write"),
   validateSchema(updateDestinationSchema),
   updateDestination,
 );
-router.delete("/:id", authenticateToken, authorizeWrite("destinations"), deleteDestination);
+router.delete("/:id", authenticateToken, requirePermission("destinations:write"), deleteDestination);
 
 export default router;

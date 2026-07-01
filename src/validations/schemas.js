@@ -137,6 +137,7 @@ export const createRoleSchema = z.object({
     .min(2, "Tipo de rol debe tener al menos 2 caracteres")
     .max(50, "Tipo de rol no puede exceder 50 caracteres"),
   description: descriptionSchema,
+  permissions: z.array(z.string()).optional(),
 });
 
 export const updateRoleSchema = createRoleSchema.partial();
