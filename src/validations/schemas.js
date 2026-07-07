@@ -199,8 +199,10 @@ export const updateDestinationSchema = createDestinationSchema.partial();
 export const createVehicleSchema = z.object({
   plate: z
     .string()
-    .regex(/^[A-Z]{1,3}\d{1,4}$/, "Placa inválida")
-    .toUpperCase(),
+    .min(3, "Placa debe tener al menos 3 caracteres")
+    .max(15, "Placa no puede exceder 15 caracteres")
+    .toUpperCase()
+    .trim(),
   brand: z.string().max(50, "Marca no puede exceder 50 caracteres").optional(),
   model: z.string().max(50, "Modelo no puede exceder 50 caracteres").optional(),
   capacity: z
