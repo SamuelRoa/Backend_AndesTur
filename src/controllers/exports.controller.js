@@ -1,5 +1,7 @@
 import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { staffModel } from '../models/staff.models.js';
 import { VehiclesModel } from '../models/vehicles.models.js';
 import { destinationsModel } from '../models/destinations.models.js';
@@ -9,6 +11,19 @@ import { packagesModel } from '../models/packages.models.js';
 import { reservationsModel } from '../models/reservations.models.js';
 import { customersModel } from '../models/customers.models.js';
 import { usersModel } from '../models/users.models.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const LOGO_PATH = path.resolve(__dirname, '..', 'assets', 'logo.png');
+
+const BRAND = {
+  green: '#113220',
+  gold: '#C5A059',
+  bone: '#FAF9F5',
+  text: '#1a1a1a',
+  muted: '#888888',
+  lightText: '#999999',
+};
 
 const MODULES = {
   empleados: {
@@ -153,43 +168,85 @@ function formatValue(val) {
 }
 
 function generatePDF(rows, config, res) {
-  const doc = new PDFDocument({ margin: 40, size: 'A4' });
+  const doc = new PDFDocument({ margin: 50, size: 'A4' });
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="${config.title.toLowerCase().replace(/\s+/g, '_')}.pdf"`);
   doc.pipe(res);
 
-  doc.fontSize(16).font('Helvetica-Bold').text(config.title, { align: 'center' });
-  doc.moveDown();
-  doc.fontSize(8).font('Helvetica').text(`Generado: ${new Date().toLocaleString('es-ES')}`, { align: 'right' });
-  doc.moveDown();
-
-  const columns = config.fields.map((f) => ({ header: f.label, key: f.key }));
+  const { green, gold, bone, text, muted, lightText } = BRAND;
   const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+  // ── Header: logo + agency name ──
+  const headerTop = doc.page.margins.top - 15;
+  try {
+    doc.image(LOGO_PATH, doc.page.margins.left, headerTop, { width: 50 });
+  } catch (_) {
+    // logo file not found — continue without it
+  }
+  doc.fontSize(18).font('Helvetica-Bold').fillColor(green)
+    .text('AndesTur', doc.page.margins.left + 62, headerTop);
+  doc.fontSize(9).font('Helvetica').fillColor('#666666')
+    .text('Agencia de Viajes', doc.page.margins.left + 62, headerTop + 22);
+
+  // Gold divider
+  const dividerY = headerTop + 52;
+  doc.moveTo(doc.page.margins.left, dividerY)
+    .lineTo(doc.page.width - doc.page.margins.right, dividerY)
+    .lineWidth(1.5).strokeColor(gold).stroke();
+  doc.y = dividerY + 14;
+
+  // ── Title ──
+  doc.fontSize(16).font('Helvetica-Bold').fillColor(green)
+    .text(config.title, { align: 'center' });
+  doc.moveDown(0.3);
+  doc.fontSize(8).font('Helvetica').fillColor(muted)
+    .text(`Generado: ${new Date().toLocaleString('es-ES')}`, { align: 'center' });
+  doc.moveDown(0.8);
+
+  // ── Table ──
+  const columns = config.fields.map((f) => ({ header: f.label, key: f.key }));
   const colWidth = pageWidth / columns.length;
+
+  let pageNumber = 1;
+
+  const addFooter = () => {
+    const bottomY = doc.page.height - 28;
+    doc.moveTo(doc.page.margins.left, bottomY)
+      .lineTo(doc.page.width - doc.page.margins.right, bottomY)
+      .lineWidth(0.5).strokeColor(gold).stroke();
+    doc.fontSize(7).font('Helvetica').fillColor(lightText);
+    doc.text(
+      `AndesTur · andestur.com · Página ${pageNumber}`,
+      doc.page.margins.left,
+      bottomY + 4,
+      { align: 'center', width: pageWidth }
+    );
+  };
 
   const drawHeader = () => {
     const y = doc.y;
     doc.fontSize(7).font('Helvetica-Bold');
     columns.forEach((col, i) => {
       const x = doc.page.margins.left + i * colWidth;
-      doc.rect(x, y, colWidth, 14).fill('#2563eb');
+      doc.rect(x, y, colWidth, 14).fill(green);
       doc.fillColor('#ffffff').text(col.header, x + 2, y + 3, { width: colWidth - 4, align: 'left' });
-      doc.fillColor('#000000');
     });
     doc.y = y + 14;
+    doc.fillColor(text);
   };
 
   const drawRow = (row, isEven) => {
-    const y = doc.y;
-    if (y + 14 > doc.page.height - doc.page.margins.bottom) {
+    if (doc.y + 14 > doc.page.height - doc.page.margins.bottom - 18) {
+      addFooter();
+      pageNumber++;
       doc.addPage();
       drawHeader();
     }
     const yy = doc.y;
     if (isEven) {
-      doc.rect(doc.page.margins.left, yy, pageWidth, 13).fill('#f1f5f9');
+      doc.rect(doc.page.margins.left, yy, pageWidth, 13).fill(bone);
     }
-    doc.fillColor('#000000').fontSize(6).font('Helvetica');
+    doc.fillColor(text).fontSize(6).font('Helvetica');
     columns.forEach((col, i) => {
       const x = doc.page.margins.left + i * colWidth;
       const val = resolveNestedValue(row, col.key);
@@ -200,6 +257,7 @@ function generatePDF(rows, config, res) {
 
   drawHeader();
   rows.forEach((row, idx) => drawRow(row, idx % 2 === 0));
+  addFooter();
   doc.end();
 }
 

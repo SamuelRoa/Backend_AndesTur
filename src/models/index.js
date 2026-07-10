@@ -12,6 +12,7 @@ import { PaymentDetailModel } from "./payment_detail.models.js";
 import { PackagesDestinationsModel } from "./packages_destinations.models.js";
 import { staffModel } from "./staff.models.js";
 import { StaffPackageModel } from "./staff_package.models.js";
+import { trashModel } from "./trash.models.js";
 
 // Users - Roles
 usersModel.belongsTo(rolesModel, { foreignKey: "id_role", as: "role" });

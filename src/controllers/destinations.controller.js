@@ -1,6 +1,7 @@
 import { destinationsModel } from "../models/destinations.models.js";
 import { verifyToken } from "../middleware/auth.middleware.js";
 import { getPaginationParams, getPaginationResponse } from "./pagination.js";
+import { moveToTrash } from "../utils/trash.helper.js";
 
 export const getAllDestinations = async (req, res) => {
   try {
@@ -111,17 +112,15 @@ export const updateDestination = async (req, res) => {
 export const deleteDestination = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await destinationsModel.destroy({
-      where: { id_destination: id },
-    });
+    const result = await moveToTrash(destinationsModel, id, req.user?.id_user);
 
-    if (!deleted) {
+    if (!result) {
       return res
         .status(404)
         .json({ success: false, message: "Destino no encontrado" });
     }
 
-    res.json({ success: true, message: "Destino eliminado" });
+    res.json({ success: true, message: "Destino movido a la papelera" });
   } catch (error) {
     res
       .status(500)

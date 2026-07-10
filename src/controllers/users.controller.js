@@ -1,5 +1,7 @@
+import bcrypt from "bcrypt";
 import { usersModel } from "../models/users.models.js";
 import { rolesModel } from "../models/roles.models.js";
+import { moveToTrash } from "../utils/trash.helper.js";
 
 /**
  * @swagger
@@ -365,15 +367,40 @@ export const updateUser = async (req, res) => {
 export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await usersModel.destroy({ where: { id_user: id } });
+    const { adminPassword } = req.body;
 
-    if (!deleted) {
+    if (!adminPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Debes ingresar tu contraseña para eliminar un usuario",
+      });
+    }
+
+    const admin = await usersModel.findByPk(req.user.id_user);
+    if (!admin) {
+      return res.status(401).json({
+        success: false,
+        message: "Administrador no encontrado",
+      });
+    }
+
+    const valid = await bcrypt.compare(adminPassword, admin.password);
+    if (!valid) {
+      return res.status(403).json({
+        success: false,
+        message: "Contraseña incorrecta. No se puede eliminar el usuario.",
+      });
+    }
+
+    const result = await moveToTrash(usersModel, id, req.user?.id_user);
+
+    if (!result) {
       return res
         .status(404)
         .json({ success: false, message: "Usuario no encontrado" });
     }
 
-    res.json({ success: true, message: "Usuario eliminado" });
+    res.json({ success: true, message: "Usuario movido a la papelera" });
   } catch (error) {
     res.status(500).json({
       success: false,

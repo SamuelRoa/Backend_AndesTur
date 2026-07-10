@@ -2,6 +2,7 @@ import { reservationsModel } from "../models/reservations.models.js";
 import { customersModel } from "../models/customers.models.js";
 import { packagesModel } from "../models/packages.models.js";
 import { PackagesDestinationsModel } from "../models/packages_destinations.models.js";
+import { moveToTrash } from "../utils/trash.helper.js";
 import {
   sendAdminPreReservationEmail,
   sendCustomerValidationEmail,
@@ -158,17 +159,15 @@ export const updateReservation = async (req, res) => {
 export const deleteReservation = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await reservationsModel.destroy({
-      where: { id_reservation: id },
-    });
+    const result = await moveToTrash(reservationsModel, id, req.user?.id_user);
 
-    if (!deleted) {
+    if (!result) {
       return res
         .status(404)
         .json({ success: false, message: "Reservación no encontrada" });
     }
 
-    res.json({ success: true, message: "Reservación eliminada" });
+    res.json({ success: true, message: "Reservación movida a la papelera" });
   } catch (error) {
     res.status(500).json({
       success: false,

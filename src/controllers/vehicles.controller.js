@@ -1,5 +1,6 @@
 import { VehiclesModel } from "../models/vehicles.models.js";
 import { getPaginationParams, getPaginationResponse } from "./pagination.js";
+import { moveToTrash } from "../utils/trash.helper.js";
 
 export const getAllVehicles = async (req, res) => {
   try {
@@ -88,17 +89,15 @@ export const updateVehicle = async (req, res) => {
 export const deleteVehicle = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await VehiclesModel.destroy({
-      where: { id_vehicle: id },
-    });
+    const result = await moveToTrash(VehiclesModel, id, req.user?.id_user);
 
-    if (!deleted) {
+    if (!result) {
       return res
         .status(404)
         .json({ success: false, message: "Vehículo no encontrado" });
     }
 
-    res.json({ success: true, message: "Vehículo eliminado" });
+    res.json({ success: true, message: "Vehículo movido a la papelera" });
   } catch (error) {
     res.status(500).json({
       success: false,

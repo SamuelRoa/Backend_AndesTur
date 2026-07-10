@@ -1,5 +1,6 @@
 import { customersModel } from "../models/customers.models.js";
 import { getPaginationParams, getPaginationResponse } from "./pagination.js";
+import { moveToTrash } from "../utils/trash.helper.js";
 
 export const getAllCustomers = async (req, res) => {
   try {
@@ -88,17 +89,15 @@ export const updateCustomer = async (req, res) => {
 export const deleteCustomer = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await customersModel.destroy({
-      where: { id_customer: id },
-    });
+    const result = await moveToTrash(customersModel, id, req.user?.id_user);
 
-    if (!deleted) {
+    if (!result) {
       return res
         .status(404)
         .json({ success: false, message: "Cliente no encontrado" });
     }
 
-    res.json({ success: true, message: "Cliente eliminado" });
+    res.json({ success: true, message: "Cliente movido a la papelera" });
   } catch (error) {
     res.status(500).json({
       success: false,

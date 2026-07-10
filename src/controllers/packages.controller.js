@@ -1,5 +1,6 @@
 import { packagesModel } from "../models/packages.models.js";
 import { getPaginationParams, getPaginationResponse } from "./pagination.js";
+import { moveToTrash } from "../utils/trash.helper.js";
 
 export const getAllPackages = async (req, res) => {
   try {
@@ -96,15 +97,15 @@ export const updatePackage = async (req, res) => {
 export const deletePackage = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await packagesModel.destroy({ where: { id_package: id } });
+    const result = await moveToTrash(packagesModel, id, req.user?.id_user);
 
-    if (!deleted) {
+    if (!result) {
       return res
         .status(404)
         .json({ success: false, message: "Paquete no encontrado" });
     }
 
-    res.json({ success: true, message: "Paquete eliminado" });
+    res.json({ success: true, message: "Paquete movido a la papelera" });
   } catch (error) {
     res
       .status(500)

@@ -22,14 +22,14 @@ const seed = async () => {
     if (rolesCount === 0) {
       await rolesModel.bulkCreate([
         { type: "admin", description: "Administrador del sistema", permissions: ["*"] },
-        { type: "operator", description: "Operador turístico", permissions: ["reservations:read", "reservations:write", "destinations:read", "packages:read", "customers:read", "customers:write"] },
+        { type: "operator", description: "Operador turístico", permissions: ["reservations:read", "reservations:write", "destinations:read", "packages:read", "customers:read", "customers:write", "payment-header:read"] },
       ]);
       console.log("Roles creados: admin, operator");
     } else {
       // Ensure existing roles have the correct default permissions if they don't have them
       await rolesModel.update({ permissions: ["*"] }, { where: { type: "admin" } });
       await rolesModel.update(
-        { permissions: ["reservations:read", "reservations:write", "destinations:read", "packages:read", "customers:read", "customers:write"] }, 
+        { permissions: ["reservations:read", "reservations:write", "destinations:read", "packages:read", "customers:read", "customers:write", "payment-header:read"] }, 
         { where: { type: "operator" } }
       );
       console.log("Roles ya existen, permisos actualizados...");

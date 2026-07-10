@@ -1,5 +1,6 @@
 import { staffModel } from "../models/staff.models.js";
 import { getPaginationParams, getPaginationResponse } from "./pagination.js";
+import { moveToTrash } from "../utils/trash.helper.js";
 
 export const getAllStaff = async (req, res) => {
   try {
@@ -88,17 +89,15 @@ export const updateStaff = async (req, res) => {
 export const deleteStaff = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await staffModel.destroy({
-      where: { id_staff: id },
-    });
+    const result = await moveToTrash(staffModel, id, req.user?.id_user);
 
-    if (!deleted) {
+    if (!result) {
       return res
         .status(404)
         .json({ success: false, message: "Personal no encontrado" });
     }
 
-    res.json({ success: true, message: "Personal eliminado" });
+    res.json({ success: true, message: "Personal movido a la papelera" });
   } catch (error) {
     res.status(500).json({
       success: false,

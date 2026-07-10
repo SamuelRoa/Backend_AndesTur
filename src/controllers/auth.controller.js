@@ -133,7 +133,7 @@ export const login = async (req, res) => {
     if (user.state !== "active") {
       return res.status(403).json({
         success: false,
-        message: `Usuario ${user.state}`,
+        message: "Tu cuenta ha sido desactivada. Contacta al administrador.",
       });
     }
 
