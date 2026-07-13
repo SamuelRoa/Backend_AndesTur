@@ -29,6 +29,10 @@ export const usersModel = sequelize.define(
       type: DataTypes.ENUM("active", "inactive", "blocked"),
       defaultValue: "active",
     },
+    avatar: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     id_role: {
       type: DataTypes.INTEGER,
       allowNull: false,

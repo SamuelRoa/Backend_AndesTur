@@ -79,6 +79,7 @@ export const getProfile = async (req, res) => {
         email: user.email,
         username: user.username,
         lastname: null,
+        avatar: user.avatar,
         role: userRole
           ? { id_role: userRole.id_role, type: userRole.type }
           : null,
@@ -165,7 +166,7 @@ export const updateProfile = async (req, res) => {
     }
 
     const payload = req.body;
-    const allowedUpdates = ["username", "email", "password"];
+    const allowedUpdates = ["username", "email", "password", "avatar"];
     const updateData = {};
 
     allowedUpdates.forEach((field) => {
@@ -205,6 +206,7 @@ export const updateProfile = async (req, res) => {
         email: updatedUser.email,
         username: updatedUser.username,
         lastname: null,
+        avatar: updatedUser.avatar,
         role: userRole
           ? { id_role: userRole.id_role, type: userRole.type }
           : null,

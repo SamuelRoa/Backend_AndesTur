@@ -123,6 +123,7 @@ export const updateProfileSchema = z.object({
   username: z.string().min(3).max(50).optional(),
   password: passwordSchema.optional(),
   email: emailSchema.optional(),
+  avatar: z.string().optional().nullable(),
 });
 
 export const loginSchema = z.object({
