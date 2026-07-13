@@ -1,5 +1,6 @@
 import express from "express";
 import rateLimit from "express-rate-limit";
+import multer from "multer";
 import {
   getAllReservations,
   getReservationById,
@@ -9,6 +10,7 @@ import {
   createPreReservation,
   queryReservations,
   rejectReservation,
+  payAfterPreReservation,
 } from "../controllers/reservations.controller.js";
 import { validateSchema } from "../middleware/validation.middleware.js";
 import {
@@ -22,6 +24,7 @@ import {
   preReservationSchema,
   reservationQuerySchema,
   rejectReservationSchema,
+  payAfterPreReservationSchema,
 } from "../validations/schemas.js";
 
 const router = express.Router();
@@ -35,6 +38,11 @@ const reservationQueryLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+});
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
 router.get("/", authenticateToken, requirePermission("reservations:read"), getAllReservations);
@@ -66,6 +74,11 @@ router.put(
   requirePermission("reservations:write"),
   validateSchema(rejectReservationSchema),
   rejectReservation,
+);
+router.post(
+  "/:id/pay",
+  upload.single("receipt"),
+  payAfterPreReservation,
 );
 router.delete(
   "/:id",

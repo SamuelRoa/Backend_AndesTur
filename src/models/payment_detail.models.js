@@ -14,7 +14,7 @@ export const PaymentDetailModel = sequelize.define(
       allowNull: false,
     },
     pay_method: {
-      type: DataTypes.ENUM("cash", "card", "digital"),
+      type: DataTypes.ENUM("cash", "card", "zelle", "pago_movil", "digital_transfer"),
       allowNull: false,
     },
     amount_paid: {

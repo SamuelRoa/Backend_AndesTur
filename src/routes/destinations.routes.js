@@ -10,14 +10,16 @@ import { validateSchema } from "../middleware/validation.middleware.js";
 import {
   authenticateToken,
   requirePermission,
-  
 } from "../middleware/auth.middleware.js";
-import { createDestinationSchema, updateDestinationSchema } from "../validations/schemas.js";
+import {
+  createDestinationSchema,
+  updateDestinationSchema,
+} from "../validations/schemas.js";
 
 const router = express.Router();
 
 router.get("/", getAllDestinations);
-router.get("/:id", authenticateToken, requirePermission("destinations:read"), getDestinationById);
+router.get("/:id", getDestinationById);
 router.post(
   "/",
   authenticateToken,
@@ -32,6 +34,11 @@ router.put(
   validateSchema(updateDestinationSchema),
   updateDestination,
 );
-router.delete("/:id", authenticateToken, requirePermission("destinations:write"), deleteDestination);
+router.delete(
+  "/:id",
+  authenticateToken,
+  requirePermission("destinations:write"),
+  deleteDestination,
+);
 
 export default router;

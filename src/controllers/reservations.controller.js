@@ -2,13 +2,27 @@ import { reservationsModel } from "../models/reservations.models.js";
 import { customersModel } from "../models/customers.models.js";
 import { packagesModel } from "../models/packages.models.js";
 import { PackagesDestinationsModel } from "../models/packages_destinations.models.js";
+import { PaymentHeaderModel } from "../models/payment_header.models.js";
+import { PaymentDetailModel } from "../models/payment_detail.models.js";
 import { moveToTrash } from "../utils/trash.helper.js";
 import {
   sendAdminPreReservationEmail,
   sendCustomerValidationEmail,
   sendRejectionEmail,
+  sendPaymentConfirmationEmail,
 } from "../services/email.service.js";
+import { simulatePayment } from "../services/paymentSimulator.service.js";
 import { getPaginationParams, getPaginationResponse } from "./pagination.js";
+
+function mapPayMethod(paymentMethod) {
+  switch (paymentMethod) {
+    case "card": return "card";
+    case "zelle": return "zelle";
+    case "pago_movil": return "pago_movil";
+    case "transfer": return "digital_transfer";
+    default: return "digital_transfer";
+  }
+}
 
 export const getAllReservations = async (req, res) => {
   try {
@@ -394,6 +408,195 @@ export const createPreReservation = async (req, res) => {
       success: false,
       message: "Error procesando la pre-reserva",
       error: errMsg,
+    });
+  }
+};
+
+const VALID_PAYMENT_METHODS = ["card", "zelle", "pago_movil", "transfer"];
+
+const AGENCY_BANK_INFO = {
+  bank: "Banesco Banco Universal",
+  accountType: "Cuenta Corriente",
+  accountNumber: "0134-0123-45-1234567890",
+  holderName: "AndesTur C.A.",
+  holderId: "J-12345678-9",
+  phoneNumber: "+58 424-7699792",
+  pagoMovil: {
+    phone: "0412-7699792",
+    bank: "Banesco",
+    id: "V-12345678",
+  },
+};
+
+export const payAfterPreReservation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const body = req.body || {};
+    const receiptFile = req.file || null;
+
+    // Log everything for debugging
+    console.log("=== PAY AFTER PRE-RESERVATION ===");
+    console.log("Params:", { id });
+    console.log("Body:", JSON.stringify(body));
+    console.log("File:", receiptFile ? { originalname: receiptFile.originalname, mimetype: receiptFile.mimetype, size: receiptFile.size } : "none");
+
+    const {
+      payment_method,
+      cardNumber,
+      expiry,
+      cvv,
+      zelleIdentifier,
+      transferReference,
+      bankName,
+    } = body;
+
+    // --- Validation ---
+    if (!payment_method) {
+      return res.status(400).json({
+        success: false,
+        message: "El método de pago es requerido",
+        errors: [{ field: "payment_method", message: "Selecciona un método de pago" }],
+      });
+    }
+
+    if (!VALID_PAYMENT_METHODS.includes(payment_method)) {
+      return res.status(400).json({
+        success: false,
+        message: `Método de pago inválido: "${payment_method}". Use: card, zelle, pago_movil o transfer`,
+        errors: [{ field: "payment_method", message: `"${payment_method}" no es válido` }],
+      });
+    }
+
+    // --- Find reservation ---
+    const reservation = await reservationsModel.findByPk(id, {
+      include: [{ model: customersModel }, { model: packagesModel }],
+    });
+
+    if (!reservation) {
+      return res.status(404).json({
+        success: false,
+        message: "Reserva no encontrada",
+      });
+    }
+
+    if (reservation.pay_state === "paid") {
+      return res.status(400).json({
+        success: false,
+        message: "Esta reserva ya está pagada",
+      });
+    }
+
+    if (["cancelled", "expired", "rejected"].includes(reservation.pay_state)) {
+      return res.status(400).json({
+        success: false,
+        message: "Esta reserva ya no está disponible para pago",
+      });
+    }
+
+    const packageData = reservation.Package;
+    const customer = reservation.Customer;
+    const amount = Number(packageData?.price || 0);
+
+    // --- Pago Móvil: special handling ---
+    if (payment_method === "pago_movil") {
+      const receiptRef = body.receiptReference || `PM-${Date.now()}`;
+
+      await PaymentHeaderModel.create({
+        id_reservation: reservation.id_reservation,
+        total_amount: amount,
+        payment_date: new Date(),
+      });
+
+      // Store as pending admin verification
+      await reservation.update({ pay_state: "pending" });
+
+      return res.json({
+        success: true,
+        message: "Solicitud de pago recibida. Debes esperar la confirmación de la agencia.",
+        data: {
+          payment: {
+            status: "pending_verification",
+            reference: receiptRef,
+          },
+          reservation: {
+            id_reservation: reservation.id_reservation,
+            pay_state: "pending",
+          },
+          bankInfo: AGENCY_BANK_INFO,
+        },
+      });
+    }
+
+    // --- Card, Zelle, Transfer: simulated payment ---
+    const simulation = simulatePayment({
+      payment_method,
+      amount,
+      cardNumber,
+      expiry,
+      cvv,
+      zelleIdentifier,
+      transferReference,
+      bankName,
+    });
+
+    const header = await PaymentHeaderModel.create({
+      id_reservation: reservation.id_reservation,
+      total_amount: amount,
+      payment_date: new Date(),
+    });
+
+    await PaymentDetailModel.create({
+      id_payment_header: header.id_payment_header,
+      pay_method: mapPayMethod(payment_method),
+      amount_paid: amount,
+      reference: simulation.reference,
+      payment_date: new Date(),
+    });
+
+    if (simulation.approved) {
+      await reservation.update({ pay_state: "paid" });
+
+      if (customer?.email) {
+        sendPaymentConfirmationEmail(
+          customer,
+          reservation,
+          packageData,
+          header,
+          simulation,
+        ).catch((err) => {
+          console.error("Error al enviar factura de pago:", err.message);
+        });
+      }
+    } else {
+      await reservation.update({ pay_state: "rejected" });
+    }
+
+    res.json({
+      success: true,
+      message: simulation.message,
+      data: {
+        payment: {
+          id_payment_header: header.id_payment_header,
+          id_reservation: reservation.id_reservation,
+          amount,
+          payment_method,
+          status: simulation.status,
+          reference: simulation.reference,
+          cardBrand: simulation.cardBrand || null,
+          lastFour: simulation.lastFour || null,
+        },
+        reservation: {
+          id_reservation: reservation.id_reservation,
+          pay_state: simulation.approved ? "paid" : "rejected",
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Error procesando pago post-reserva:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error procesando el pago",
+      error: error.message,
     });
   }
 };

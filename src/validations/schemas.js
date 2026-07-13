@@ -80,7 +80,7 @@ export const futureDateSchema = dateSchema.refine(
 // Validación de enums
 export const userStateEnum = z.enum(["active", "inactive", "blocked"]);
 export const staffTypeEnum = z.enum(["guide", "driver"]);
-export const payMethodEnum = z.enum(["cash", "card", "digital"]);
+export const payMethodEnum = z.enum(["cash", "card", "zelle", "pago_movil", "digital_transfer"]);
 export const payStateEnum = z.enum([
   "pending",
   "partial",
@@ -357,5 +357,50 @@ export const preReservationSchema = z.object({
   phone_number: phoneSchema,
   email: emailSchema,
   id_package: idSchema,
+});
+
+// === INITIATE PAYMENT (Website - Public) ===
+export const initiatePaymentSchema = z.object({
+  id_reservation: z
+    .number()
+    .int("ID de reserva debe ser un número entero")
+    .positive("ID de reserva debe ser positivo"),
+  amount: z
+    .number()
+    .positive("Monto debe ser mayor a 0"),
+  payment_method: z.enum(["card", "zelle", "pago_movil", "transfer"]),
+  cardNumber: z.string().optional(),
+  expiry: z.string().optional(),
+  cvv: z.string().optional(),
+  zelleIdentifier: z.string().optional(),
+  transferReference: z.string().optional(),
+  bankName: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  bankOperator: z.string().optional(),
+});
+
+// === PAY AFTER PRE-RESERVATION (Website - Public) ===
+export const payAfterPreReservationSchema = z.object({
+  payment_method: z.enum(["card", "zelle", "pago_movil", "transfer"]),
+  cardNumber: z.string().optional(),
+  expiry: z.string().optional(),
+  cvv: z.string().optional(),
+  zelleIdentifier: z.string().optional(),
+  transferReference: z.string().optional(),
+  bankName: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  bankOperator: z.string().optional(),
+});
+
+// === REGISTER MANUAL PAYMENT (Panel Admin) ===
+export const registerManualPaymentSchema = z.object({
+  id_reservation: z.number().int().positive(),
+  pay_method: payMethodEnum,
+  amount_paid: priceSchema,
+  reference: z
+    .string()
+    .max(100, "Referencia no puede exceder 100 caracteres")
+    .optional(),
+  payment_date: dateSchema.optional(),
 });
 

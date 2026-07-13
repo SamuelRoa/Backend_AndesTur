@@ -17,6 +17,7 @@ import stateRoutes from "./state.routes.js";
 import vehiclesRoutes from "./vehicles.routes.js";
 import exportsRoutes from "./exports.routes.js";
 import trashRoutes from "./trash.routes.js";
+import paymentsRoutes from "./payments.routes.js";
 import { getHealth } from "../controllers/health.controller.js";
 
 const router = express.Router();
@@ -40,5 +41,6 @@ router.use("/states", stateRoutes);
 router.use("/vehicles", vehiclesRoutes);
 router.use("/exports", exportsRoutes);
 router.use("/trash", trashRoutes);
+router.use("/payments", paymentsRoutes);
 
 export default router;

@@ -185,6 +185,220 @@ export const sendRejectionEmail = async (
   }
 };
 
+const PAYMENT_METHOD_LABELS = {
+  card: "Tarjeta de Crédito/Débito",
+  zelle: "Zelle",
+  pago_movil: "Pago Móvil",
+  transfer: "Transferencia Bancaria",
+  digital_transfer: "Transferencia Bancaria",
+};
+
+const CURRENCY_SYMBOL = "USD";
+const COMPANY_INFO = {
+  name: "AndesTur",
+  rif: "J-12345678-9",
+  address: "Mérida, Estado Mérida, Venezuela",
+  phone: "+58 424-7699792",
+  email: "contacto@andestur.com",
+};
+
+function formatCurrency(amount) {
+  return Number(amount || 0).toLocaleString("es-CO", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function formatDateLong(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("es-ES", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+function formatDateTimeLong(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("es-ES", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+const generateInvoiceHTML = (customer, reservation, packageData, paymentHeader, simulation) => {
+  const invoiceNumber = `FAC-${String(reservation.id_reservation).padStart(6, "0")}-${String(paymentHeader.id_payment_header).padStart(4, "0")}`;
+  const methodLabel = PAYMENT_METHOD_LABELS[simulation.payment_method] || simulation.payment_method;
+  const subtotal = Number(packageData?.price || 0);
+  const taxRate = 0;
+  const taxAmount = subtotal * taxRate;
+  const total = subtotal + taxAmount;
+
+  return `
+<div style="background: #FAFAF7; padding: 20px; font-family: 'Courier New', Courier, monospace;">
+  <div style="max-width: 650px; margin: 0 auto; background: white; border: 2px solid #1B4332; border-radius: 8px; overflow: hidden;">
+
+    <!-- HEADER: Invoice -->
+    <div style="background: #1B4332; padding: 25px; text-align: center; border-bottom: 4px solid #C9954B;">
+      <h1 style="color: #C9954B; margin: 0; font-size: 26px; font-family: Georgia, 'Times New Roman', serif; letter-spacing: 2px;">ANDESTUR</h1>
+      <p style="color: #F5EDE0; margin: 4px 0 0; font-size: 11px; letter-spacing: 1px;">AGENCIA DE VIAJES Y TURISMO</p>
+    </div>
+
+    <!-- INVOICE TITLE -->
+    <div style="text-align: center; padding: 20px; border-bottom: 2px dashed #E8D5B7;">
+      <h2 style="color: #1B4332; margin: 0; font-size: 22px; font-family: Georgia, 'Times New Roman', serif;">FACTURA DE PAGO</h2>
+      <p style="color: #999; font-size: 11px; margin: 4px 0 0;">Documento equivalente a factura</p>
+    </div>
+
+    <!-- INVOICE INFO -->
+    <table style="width: 100%; padding: 20px; border-collapse: collapse; font-size: 12px;">
+      <tr>
+        <td style="width: 50%; vertical-align: top; padding-right: 20px;">
+          <p style="font-weight: bold; color: #1B4332; margin: 0 0 4px; font-size: 13px;">EMISOR</p>
+          <p style="margin: 2px 0; color: #333;">${COMPANY_INFO.name}</p>
+          <p style="margin: 2px 0; color: #333;">RIF: ${COMPANY_INFO.rif}</p>
+          <p style="margin: 2px 0; color: #333;">${COMPANY_INFO.address}</p>
+          <p style="margin: 2px 0; color: #333;">${COMPANY_INFO.phone}</p>
+          <p style="margin: 2px 0; color: #333;">${COMPANY_INFO.email}</p>
+        </td>
+        <td style="width: 50%; vertical-align: top; text-align: right;">
+          <p style="font-weight: bold; color: #1B4332; margin: 0 0 4px; font-size: 13px;">FACTURA N°</p>
+          <p style="margin: 2px 0; color: #1B4332; font-weight: bold; font-size: 15px;">${invoiceNumber}</p>
+          <p style="margin: 2px 0; color: #333;">Fecha: ${formatDateTimeLong(paymentHeader.payment_date)}</p>
+          <p style="margin: 2px 0; color: #333;">Método de pago: ${methodLabel}</p>
+          <p style="margin: 2px 0; color: #333;">Referencia: ${simulation.reference}</p>
+          ${simulation.cardBrand ? `<p style="margin: 2px 0; color: #333;">Tarjeta: ${simulation.cardBrand.toUpperCase()} ****${simulation.lastFour}</p>` : ""}
+        </td>
+      </tr>
+    </table>
+
+    <!-- CLIENT INFO -->
+    <div style="background: #F5EDE0; padding: 15px 20px; margin: 0 20px 20px; border-left: 4px solid #C9954B; border-radius: 4px;">
+      <p style="font-weight: bold; color: #1B4332; margin: 0 0 4px; font-size: 13px;">CLIENTE</p>
+      <table style="width: 100%; font-size: 12px; color: #333; border-collapse: collapse;">
+        <tr><td style="padding: 2px 0; width: 80px; font-weight: bold;">Nombre:</td><td style="padding: 2px 0;">${customer.name} ${customer.lastname || ""}</td></tr>
+        <tr><td style="padding: 2px 0; font-weight: bold;">Email:</td><td style="padding: 2px 0;">${customer.email}</td></tr>
+        <tr><td style="padding: 2px 0; font-weight: bold;">DNI:</td><td style="padding: 2px 0;">${customer.dni}</td></tr>
+        <tr><td style="padding: 2px 0; font-weight: bold;">Teléfono:</td><td style="padding: 2px 0;">${customer.phone_number || "—"}</td></tr>
+      </table>
+    </div>
+
+    <!-- TABLE HEADER -->
+    <table style="width: calc(100% - 40px); margin: 0 20px; border-collapse: collapse; font-size: 12px;">
+      <thead>
+        <tr style="background: #1B4332; color: white;">
+          <th style="padding: 10px; text-align: left; font-weight: normal;">Descripción</th>
+          <th style="padding: 10px; text-align: center; font-weight: normal; width: 80px;">Cant.</th>
+          <th style="padding: 10px; text-align: right; font-weight: normal; width: 120px;">Precio Unit.</th>
+          <th style="padding: 10px; text-align: right; font-weight: normal; width: 120px;">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom: 1px solid #E8D5B7;">
+          <td style="padding: 12px 10px;">
+            <p style="margin: 0; font-weight: bold; color: #1B4332;">${packageData?.name || `Paquete Turístico #${reservation.id_package}`}</p>
+            <p style="margin: 4px 0 0; color: #666; font-size: 11px;">
+              ${packageData?.departure_date ? `Salida: ${formatDateLong(packageData.departure_date)}` : ""}
+              ${packageData?.return_date ? ` → Retorno: ${formatDateLong(packageData.return_date)}` : ""}
+            </p>
+            ${packageData?.description ? `<p style="margin: 4px 0 0; color: #666; font-size: 11px;">${packageData.description.slice(0, 100)}</p>` : ""}
+          </td>
+          <td style="padding: 12px 10px; text-align: center;">1</td>
+          <td style="padding: 12px 10px; text-align: right;">${formatCurrency(subtotal)}</td>
+          <td style="padding: 12px 10px; text-align: right; font-weight: bold;">${formatCurrency(subtotal)}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- TOTALS -->
+    <table style="width: calc(100% - 40px); margin: 10px 20px 20px; border-collapse: collapse; font-size: 12px;">
+      <tr>
+        <td style="width: 60%;"></td>
+        <td style="width: 40%;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 6px; text-align: right; color: #666;">Subtotal:</td>
+              <td style="padding: 6px; text-align: right; width: 100px;">${formatCurrency(subtotal)}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px; text-align: right; color: #666;">Exento de IVA:</td>
+              <td style="padding: 6px; text-align: right;">${formatCurrency(0)}</td>
+            </tr>
+            <tr style="border-top: 2px solid #1B4332;">
+              <td style="padding: 10px 6px; text-align: right; font-weight: bold; color: #1B4332; font-size: 15px;">TOTAL:</td>
+              <td style="padding: 10px 6px; text-align: right; font-weight: bold; color: #C9954B; font-size: 16px;">${formatCurrency(total)}</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 6px; text-align: right; color: #999; font-size: 10px;" colspan="2">${CURRENCY_SYMBOL} — Dólar Americano</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <!-- PAYMENT STATUS -->
+    <div style="text-align: center; padding: 15px; margin: 0 20px 20px; background: #E8F5E9; border: 1px solid #4CAF50; border-radius: 6px;">
+      <p style="margin: 0; color: #2E7D32; font-size: 14px; font-weight: bold;">✓ PAGO CONFIRMADO</p>
+      <p style="margin: 4px 0 0; color: #2E7D32; font-size: 11px;">Reserva N° ${reservation.id_reservation} — Estado: Pagada</p>
+    </div>
+
+    <!-- FOOTER INFO -->
+    <div style="padding: 0 20px 20px; text-align: center; font-size: 10px; color: #999;">
+      <p style="margin: 2px 0;">Reserva ID: ${reservation.id_reservation} | Factura: ${invoiceNumber}</p>
+      <p style="margin: 2px 0;">Gracias por confiar en ${COMPANY_INFO.name}. ¡Buen viaje!</p>
+      <p style="margin: 6px 0 0; color: #ccc;">Este es un documento generado automáticamente. No requiere firma.</p>
+    </div>
+
+  </div>
+</div>`;
+};
+
+export const sendPaymentConfirmationEmail = async (
+  customer,
+  reservation,
+  packageData,
+  paymentHeader,
+  simulation,
+) => {
+  const packageName = packageData?.name || `Paquete #${reservation.id_package}`;
+  const methodLabel = PAYMENT_METHOD_LABELS[simulation.payment_method] || simulation.payment_method;
+
+  const invoiceHTML = generateInvoiceHTML(customer, reservation, packageData, paymentHeader, simulation);
+
+  const content = `
+    <h2 style="color: #1B4332;">¡Pago recibido, ${customer.name}!</h2>
+    <p style="color: #2D6A4F; font-size: 16px;">Hemos procesado tu pago exitosamente.</p>
+    <div style="background: #E8F5E9; border: 1px solid #4CAF50; border-radius: 6px; padding: 15px; margin: 15px 0; text-align: center;">
+      <p style="margin: 0; font-size: 14px; color: #2E7D32;"><strong>Reserva #${reservation.id_reservation}</strong></p>
+      <p style="margin: 4px 0; font-size: 13px; color: #2E7D32;">${packageName}</p>
+      <p style="margin: 4px 0; font-size: 13px; color: #C9954B; font-weight: bold;">${methodLabel} — ${simulation.reference}</p>
+      <p style="margin: 4px 0; font-size: 12px; color: #2E7D32;">Monto: ${Number(paymentHeader.total_amount).toFixed(2)} USD</p>
+    </div>
+    <p style="color: #2D2D2D;">A continuación encontrarás tu factura detallada:</p>
+    ${invoiceHTML}
+    <div style="background: #F5EDE0; padding: 15px; border-left: 4px solid #C9954B; margin-top: 20px; border-radius: 4px;">
+      <p style="margin: 0; color: #2D2D2D; font-size: 14px;"><strong>¿Qué sigue?</strong> Te contactaremos antes de la fecha del viaje con todos los detalles. Si tienes dudas, responde a este correo o escríbenos a ${COMPANY_INFO.phone}.</p>
+    </div>
+    <p style="margin-top: 25px; font-weight: bold; color: #1B4332;">¡Gracias por viajar con AndesTur!</p>`;
+
+  try {
+    await sendGenericEmail({
+      to_email: customer.email,
+      subject: `Factura de Pago — Reserva #${reservation.id_reservation} — AndesTur`,
+      html_content: wrapper(content),
+    });
+  } catch (error) {
+    const errMsg = (error && error.message) || String(error);
+    console.error("Error al enviar factura de pago al cliente:", errMsg);
+    throw error;
+  }
+};
+
 export const sendWeeklyReportEmail = async ({
   to_email,
   week_range,

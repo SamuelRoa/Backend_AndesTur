@@ -10,7 +10,6 @@ import { validateSchema } from "../middleware/validation.middleware.js";
 import {
   authenticateToken,
   requirePermission,
-  
 } from "../middleware/auth.middleware.js";
 import {
   createPackageSchema,
@@ -19,8 +18,8 @@ import {
 
 const router = express.Router();
 
-router.get("/", authenticateToken, requirePermission("packages:read"), getAllPackages);
-router.get("/:id", authenticateToken, requirePermission("packages:read"), getPackageById);
+router.get("/", getAllPackages);
+router.get("/:id", getPackageById);
 router.post(
   "/",
   authenticateToken,
@@ -35,6 +34,11 @@ router.put(
   validateSchema(updatePackageSchema),
   updatePackage,
 );
-router.delete("/:id", authenticateToken, requirePermission("packages:write"), deletePackage);
+router.delete(
+  "/:id",
+  authenticateToken,
+  requirePermission("packages:write"),
+  deletePackage,
+);
 
 export default router;
