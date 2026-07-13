@@ -11,7 +11,11 @@ export const reservationsModel = sequelize.define(
     },
     id_package: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
+    },
+    id_destination: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
     },
     id_customer: {
       type: DataTypes.INTEGER,

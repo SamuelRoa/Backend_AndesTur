@@ -3,6 +3,7 @@ import { PaymentDetailModel } from "../models/payment_detail.models.js";
 import { reservationsModel } from "../models/reservations.models.js";
 import { customersModel } from "../models/customers.models.js";
 import { packagesModel } from "../models/packages.models.js";
+import { destinationsModel } from "../models/destinations.models.js";
 import { simulatePayment } from "../services/paymentSimulator.service.js";
 import { sendPaymentConfirmationEmail } from "../services/email.service.js";
 import { validateData } from "../middleware/validation.middleware.js";
@@ -11,7 +12,7 @@ import { z } from "zod";
 const initiatePaymentSchema = z.object({
   id_reservation: z.number().int().positive(),
   amount: z.number().positive(),
-  payment_method: z.enum(["card", "zelle", "pago_movil", "transfer"]),
+  payment_method: z.enum(["card", "zelle", "pago_movil", "transfer", "paypal"]),
   cardNumber: z.string().optional(),
   expiry: z.string().optional(),
   cvv: z.string().optional(),
@@ -32,6 +33,8 @@ function mapPayMethod(paymentMethod) {
       return "pago_movil";
     case "transfer":
       return "digital_transfer";
+    case "paypal":
+      return "paypal";
     default:
       return "digital_transfer";
   }
@@ -71,7 +74,13 @@ export const initiatePayment = async (req, res) => {
         .json({ success: false, message: "Esta reserva ya no está disponible para pago" });
     }
 
-    const packageData = await packagesModel.findByPk(reservation.id_package);
+    let packageData = null;
+    let destinationData = null;
+    if (reservation.id_package) {
+      packageData = await packagesModel.findByPk(reservation.id_package);
+    } else if (reservation.id_destination) {
+      destinationData = await destinationsModel.findByPk(reservation.id_destination);
+    }
     const customer = await customersModel.findByPk(reservation.id_customer);
 
     const simulation = simulatePayment({
@@ -101,7 +110,7 @@ export const initiatePayment = async (req, res) => {
         sendPaymentConfirmationEmail(
           customer,
           reservation,
-          packageData,
+          packageData || destinationData,
           header,
           simulation,
         ).catch((err) => {
@@ -135,7 +144,8 @@ export const initiatePayment = async (req, res) => {
             ? `${customer.name} ${customer.lastname || ""}`.trim()
             : null,
           package: packageData?.name || null,
-          price: packageData?.price || null,
+          destination: destinationData?.name || null,
+          price: packageData?.price || destinationData?.price || null,
         },
       },
     });

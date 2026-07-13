@@ -175,5 +175,16 @@ export function simulatePayment(payload = {}) {
     };
   }
 
+  if (payment_method === "paypal") {
+    return {
+      approved: true,
+      status: "approved",
+      message: `Pago PayPal aprobado para ${normalizedAmount.toFixed(2)} USD`,
+      reference: `PYPL-${Date.now()}`,
+      payment_method: "paypal",
+      amount: normalizedAmount,
+    };
+  }
+
   return reject("Método de pago inválido");
 }

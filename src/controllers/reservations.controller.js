@@ -1,6 +1,7 @@
 import { reservationsModel } from "../models/reservations.models.js";
 import { customersModel } from "../models/customers.models.js";
 import { packagesModel } from "../models/packages.models.js";
+import { destinationsModel } from "../models/destinations.models.js";
 import { PackagesDestinationsModel } from "../models/packages_destinations.models.js";
 import { PaymentHeaderModel } from "../models/payment_header.models.js";
 import { PaymentDetailModel } from "../models/payment_detail.models.js";
@@ -20,6 +21,7 @@ function mapPayMethod(paymentMethod) {
     case "zelle": return "zelle";
     case "pago_movil": return "pago_movil";
     case "transfer": return "digital_transfer";
+    case "paypal": return "paypal";
     default: return "digital_transfer";
   }
 }
@@ -271,6 +273,16 @@ export const queryReservations = async (req, res) => {
             "description",
           ],
         },
+        {
+          model: destinationsModel,
+          attributes: [
+            "id_destination",
+            "name",
+            "description",
+            "price",
+            "image_url",
+          ],
+        },
       ],
       order: [["created_at", "DESC"]],
     });
@@ -279,6 +291,7 @@ export const queryReservations = async (req, res) => {
       id_reservation: r.id_reservation,
       pay_state: r.pay_state,
       id_package: r.id_package,
+      id_destination: r.id_destination,
       package: r.Package
         ? {
             name: r.Package.name,
@@ -286,6 +299,15 @@ export const queryReservations = async (req, res) => {
             return_date: r.Package.return_date,
             price: r.Package.price,
             description: r.Package.description,
+          }
+        : null,
+      destination: r.Destination
+        ? {
+            id_destination: r.Destination.id_destination,
+            name: r.Destination.name,
+            description: r.Destination.description,
+            price: r.Destination.price,
+            image_url: r.Destination.image_url,
           }
         : null,
       reservation_date: r.reservation_date,
@@ -315,15 +337,29 @@ export const queryReservations = async (req, res) => {
 
 export const createPreReservation = async (req, res) => {
   try {
-    const { dni, name, lastname, phone_number, email, id_package } = req.body;
+    const { dni, name, lastname, phone_number, email, id_package, id_destination } = req.body;
 
-    // 1. Verificar si el paquete existe
-    const packageData = await packagesModel.findByPk(id_package);
-    if (!packageData) {
-      return res.status(404).json({
-        success: false,
-        message: "El paquete de viaje seleccionado no existe",
-      });
+    let packageData = null;
+    let destinationData = null;
+
+    if (id_package) {
+      // 1a. Verificar si el paquete existe
+      packageData = await packagesModel.findByPk(id_package);
+      if (!packageData) {
+        return res.status(404).json({
+          success: false,
+          message: "El paquete de viaje seleccionado no existe",
+        });
+      }
+    } else if (id_destination) {
+      // 1b. Verificar si el destino existe
+      destinationData = await destinationsModel.findByPk(id_destination);
+      if (!destinationData) {
+        return res.status(404).json({
+          success: false,
+          message: "El destino seleccionado no existe",
+        });
+      }
     }
 
     // 2. Buscar o crear/actualizar el cliente por DNI
@@ -356,17 +392,15 @@ export const createPreReservation = async (req, res) => {
     }
 
     // 3. Crear la reserva en estado 'pending'
-    const reservation = await reservationsModel.create({
-      id_package,
-      id_customer: customer.id_customer,
-      pay_state: "pending",
-      reservation_date: new Date(),
-    });
+    const reservationData = { id_customer: customer.id_customer, pay_state: "pending", reservation_date: new Date() };
+    if (id_package) reservationData.id_package = id_package;
+    if (id_destination) reservationData.id_destination = id_destination;
+    const reservation = await reservationsModel.create(reservationData);
 
     // 4. Enviar notificación por correo al administrador asíncronamente
-    sendAdminPreReservationEmail(customer, reservation, packageData).catch(
+    const entityData = packageData || destinationData;
+    sendAdminPreReservationEmail(customer, reservation, entityData).catch(
       (err) => {
-        // Try to stringify the error safely to surface SDK response fields (status, text)
         let errDetail;
         try {
           errDetail = JSON.stringify(err, Object.getOwnPropertyNames(err), 2);
@@ -381,16 +415,6 @@ export const createPreReservation = async (req, res) => {
           "Error al enviar correo de pre-reserva al administrador:",
           errDetail,
         );
-        console.error("EmailJS env:", {
-          SERVICE_ID:
-            process.env.EMAILJS_SERVICE_ID ||
-            process.env.EMAILJS_SERVICEID ||
-            null,
-          TEMPLATE_ADMIN_PRERESERVA:
-            process.env.EMAILJS_TEMPLATE_ADMIN_PRERESERVA ||
-            process.env.EMAILJS_TEMPLATE_GENERIC ||
-            null,
-        });
       },
     );
 
@@ -400,6 +424,7 @@ export const createPreReservation = async (req, res) => {
       data: {
         reservation,
         customer,
+        destination: destinationData || undefined,
       },
     });
   } catch (error) {
@@ -412,7 +437,7 @@ export const createPreReservation = async (req, res) => {
   }
 };
 
-const VALID_PAYMENT_METHODS = ["card", "zelle", "pago_movil", "transfer"];
+const VALID_PAYMENT_METHODS = ["card", "zelle", "pago_movil", "transfer", "paypal"];
 
 const AGENCY_BANK_INFO = {
   bank: "Banesco Banco Universal",
@@ -469,7 +494,11 @@ export const payAfterPreReservation = async (req, res) => {
 
     // --- Find reservation ---
     const reservation = await reservationsModel.findByPk(id, {
-      include: [{ model: customersModel }, { model: packagesModel }],
+      include: [
+        { model: customersModel },
+        { model: packagesModel },
+        { model: destinationsModel },
+      ],
     });
 
     if (!reservation) {
@@ -494,8 +523,9 @@ export const payAfterPreReservation = async (req, res) => {
     }
 
     const packageData = reservation.Package;
+    const destinationData = reservation.Destination;
     const customer = reservation.Customer;
-    const amount = Number(packageData?.price || 0);
+    const amount = Number(packageData?.price || destinationData?.price || 0);
 
     // --- Pago Móvil: special handling ---
     if (payment_method === "pago_movil") {

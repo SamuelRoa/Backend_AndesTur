@@ -191,6 +191,7 @@ const PAYMENT_METHOD_LABELS = {
   pago_movil: "Pago Móvil",
   transfer: "Transferencia Bancaria",
   digital_transfer: "Transferencia Bancaria",
+  paypal: "PayPal",
 };
 
 const CURRENCY_SYMBOL = "USD";

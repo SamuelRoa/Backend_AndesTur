@@ -30,9 +30,11 @@ MunicipalityModel.hasMany(destinationsModel, { foreignKey: "id_municipality" });
 packagesModel.belongsTo(VehiclesModel, { foreignKey: "id_vehicle" });
 VehiclesModel.hasMany(packagesModel, { foreignKey: "id_vehicle" });
 
-// Reservations - Packages / Customers
+// Reservations - Packages / Customers / Destinations
 reservationsModel.belongsTo(packagesModel, { foreignKey: "id_package" });
 packagesModel.hasMany(reservationsModel, { foreignKey: "id_package" });
+reservationsModel.belongsTo(destinationsModel, { foreignKey: "id_destination" });
+destinationsModel.hasMany(reservationsModel, { foreignKey: "id_destination" });
 reservationsModel.belongsTo(customersModel, { foreignKey: "id_customer" });
 customersModel.hasMany(reservationsModel, { foreignKey: "id_customer" });
 
