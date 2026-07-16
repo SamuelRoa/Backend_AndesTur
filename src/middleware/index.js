@@ -19,3 +19,8 @@ export {
   asyncHandler,
   AppError,
 } from "./errorHandler.middleware.js";
+
+export { cacheMiddleware } from "./cache.middleware.js";
+export { redisRateLimiter } from "./rateLimit.middleware.js";
+
+

@@ -13,11 +13,13 @@ import {
   
 } from "../middleware/auth.middleware.js";
 import { createMunicipalitySchema, updateMunicipalitySchema } from "../validations/schemas.js";
+import { cacheMiddleware } from "../middleware/index.js";
 
 const router = express.Router();
 
-router.get("/", authenticateToken, requirePermission("municipality:read"), getAllMunicipalities);
-router.get("/:id", authenticateToken, requirePermission("municipality:read"), getMunicipalityById);
+router.get("/", authenticateToken, requirePermission("municipality:read"), cacheMiddleware("municipalities", 86400), getAllMunicipalities);
+router.get("/:id", authenticateToken, requirePermission("municipality:read"), cacheMiddleware("municipalities", 86400), getMunicipalityById);
+
 router.post(
   "/",
   authenticateToken,

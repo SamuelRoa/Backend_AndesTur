@@ -15,11 +15,13 @@ import {
   createPackageSchema,
   updatePackageSchema,
 } from "../validations/schemas.js";
+import { cacheMiddleware } from "../middleware/index.js";
 
 const router = express.Router();
 
-router.get("/", getAllPackages);
-router.get("/:id", getPackageById);
+router.get("/", cacheMiddleware("packages", 1800), getAllPackages);
+router.get("/:id", cacheMiddleware("packages", 1800), getPackageById);
+
 router.post(
   "/",
   authenticateToken,

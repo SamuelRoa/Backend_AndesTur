@@ -11,6 +11,9 @@ import { PaymentHeaderModel } from "./payment_header.models.js";
 import { PaymentDetailModel } from "./payment_detail.models.js";
 import { PackagesDestinationsModel } from "./packages_destinations.models.js";
 import { staffModel } from "./staff.models.js";
+import { StaffDocumentsModel } from "./staff_documents.models.js";
+import { StaffScheduleModel } from "./staff_schedules.models.js";
+import { StaffExceptionModel } from "./staff_schedule_exceptions.models.js";
 import { StaffPackageModel } from "./staff_package.models.js";
 import { trashModel } from "./trash.models.js";
 
@@ -55,6 +58,18 @@ destinationsModel.hasMany(PackagesDestinationsModel, { foreignKey: "id_destinati
 // Staff - Users
 staffModel.belongsTo(usersModel, { foreignKey: "id_user" });
 usersModel.hasOne(staffModel, { foreignKey: "id_user" });
+
+// Staff - Documents
+staffModel.hasMany(StaffDocumentsModel, { foreignKey: "id_staff" });
+StaffDocumentsModel.belongsTo(staffModel, { foreignKey: "id_staff" });
+
+// Staff - Schedules
+staffModel.hasMany(StaffScheduleModel, { foreignKey: "id_staff" });
+StaffScheduleModel.belongsTo(staffModel, { foreignKey: "id_staff" });
+
+// Staff - Exceptions
+staffModel.hasMany(StaffExceptionModel, { foreignKey: "id_staff" });
+StaffExceptionModel.belongsTo(staffModel, { foreignKey: "id_staff" });
 
 // Staff Packages
 StaffPackageModel.belongsTo(packagesModel, { foreignKey: "id_package" });

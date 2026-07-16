@@ -8,6 +8,7 @@ import { staffModel } from "../models/staff.models.js";
 import { VehiclesModel } from "../models/vehicles.models.js";
 import { getPaginationParams, getPaginationResponse } from "./pagination.js";
 import { Op } from "sequelize";
+import { deleteCachePattern } from "../config/redis.js";
 
 const MODEL_MAP = {
   customers: customersModel,
@@ -102,6 +103,12 @@ export const restoreTrashItem = async (req, res) => {
 
     await model.create({ ...data, [pkField]: trashItem.record_id });
     await trashItem.destroy();
+
+    if (trashItem.table_name === "destinations" || trashItem.table_name === "packages") {
+      deleteCachePattern(`cache:${trashItem.table_name}:*`).catch((err) => {
+        console.error(`[Trash Controller] Error al invalidar caché para ${trashItem.table_name}:`, err.message);
+      });
+    }
 
     res.json({ success: true, message: "Elemento restaurado correctamente" });
   } catch (error) {

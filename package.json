@@ -22,6 +22,7 @@
     "node-cron": "^3.0.2",
     "pdfkit": "^0.13.0",
     "pg": "^8.20.0",
+    "redis": "^6.1.0",
     "sequelize": "^6.34.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^4.6.3",

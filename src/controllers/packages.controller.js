@@ -1,6 +1,7 @@
 import { packagesModel } from "../models/packages.models.js";
 import { getPaginationParams, getPaginationResponse } from "./pagination.js";
 import { moveToTrash } from "../utils/trash.helper.js";
+import { deleteCachePattern } from "../config/redis.js";
 
 export const getAllPackages = async (req, res) => {
   try {
@@ -56,6 +57,9 @@ export const getPackageById = async (req, res) => {
 export const createPackage = async (req, res) => {
   try {
     const packageItem = await packagesModel.create(req.body);
+    deleteCachePattern("cache:packages:*").catch((err) => {
+      console.error("Error al invalidar caché tras crear paquete:", err.message);
+    });
     res.status(201).json({ success: true, data: packageItem });
   } catch (error) {
     res
@@ -82,6 +86,9 @@ export const updatePackage = async (req, res) => {
     }
 
     const updatedPackage = await packagesModel.findByPk(id);
+    deleteCachePattern("cache:packages:*").catch((err) => {
+      console.error("Error al invalidar caché tras actualizar paquete:", err.message);
+    });
     res.json({ success: true, data: updatedPackage });
   } catch (error) {
     res
@@ -105,6 +112,9 @@ export const deletePackage = async (req, res) => {
         .json({ success: false, message: "Paquete no encontrado" });
     }
 
+    deleteCachePattern("cache:packages:*").catch((err) => {
+      console.error("Error al invalidar caché tras eliminar paquete:", err.message);
+    });
     res.json({ success: true, message: "Paquete movido a la papelera" });
   } catch (error) {
     res

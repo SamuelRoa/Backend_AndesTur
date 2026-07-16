@@ -23,8 +23,42 @@ export const staffModel = sequelize.define(
       unique: true,
     },
     type: {
-      type: DataTypes.ENUM("guide", "driver"),
+      type: DataTypes.STRING(50),
       allowNull: false,
+    },
+    phone: {
+      type: DataTypes.STRING(20),
+    },
+    email: {
+      type: DataTypes.STRING(100),
+    },
+    address: {
+      type: DataTypes.TEXT,
+    },
+    birth_date: {
+      type: DataTypes.DATEONLY,
+    },
+    position: {
+      type: DataTypes.STRING(100),
+    },
+    emergency_contact: {
+      type: DataTypes.STRING(100),
+    },
+    emergency_phone: {
+      type: DataTypes.STRING(20),
+    },
+    hire_date: {
+      type: DataTypes.DATEONLY,
+    },
+    salary: {
+      type: DataTypes.DECIMAL(10, 2),
+    },
+    employment_status: {
+      type: DataTypes.STRING(20),
+      defaultValue: "active",
+    },
+    notes: {
+      type: DataTypes.TEXT,
     },
     id_user: {
       type: DataTypes.INTEGER,
@@ -36,5 +70,8 @@ export const staffModel = sequelize.define(
     timestamps: true,
     createdAt: "created_at",
     updatedAt: "updated_at",
+    hooks: {
+      beforeSync: () => console.log("staffModel synced (no ENUM issues)"),
+    },
   },
 );

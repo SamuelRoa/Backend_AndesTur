@@ -1,4 +1,5 @@
 import { MunicipalityModel } from "../models/municipality.models.js";
+import { deleteCachePattern } from "../config/redis.js";
 
 export const getAllMunicipalities = async (req, res) => {
   try {
@@ -37,6 +38,9 @@ export const getMunicipalityById = async (req, res) => {
 export const createMunicipality = async (req, res) => {
   try {
     const municipality = await MunicipalityModel.create(req.body);
+    deleteCachePattern("cache:municipalities:*").catch((err) => {
+      console.error("Error al invalidar caché tras crear municipio:", err.message);
+    });
     res.status(201).json({ success: true, data: municipality });
   } catch (error) {
     res.status(500).json({
@@ -61,6 +65,9 @@ export const updateMunicipality = async (req, res) => {
     }
 
     const updatedMunicipality = await MunicipalityModel.findByPk(id);
+    deleteCachePattern("cache:municipalities:*").catch((err) => {
+      console.error("Error al invalidar caché tras actualizar municipio:", err.message);
+    });
     res.json({ success: true, data: updatedMunicipality });
   } catch (error) {
     res.status(500).json({
@@ -84,6 +91,9 @@ export const deleteMunicipality = async (req, res) => {
         .json({ success: false, message: "Municipio no encontrado" });
     }
 
+    deleteCachePattern("cache:municipalities:*").catch((err) => {
+      console.error("Error al invalidar caché tras eliminar municipio:", err.message);
+    });
     res.json({ success: true, message: "Municipio eliminado" });
   } catch (error) {
     res.status(500).json({
