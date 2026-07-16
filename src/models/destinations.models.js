@@ -20,6 +20,10 @@ export const destinationsModel = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: false,
     },
+    price: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+    },
     activo: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
