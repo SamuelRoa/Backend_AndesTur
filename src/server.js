@@ -35,12 +35,15 @@ const startServer = async () => {
     if (process.env.NODE_ENV !== "test") {
       await sequelize.authenticate();
       await sequelize.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT;`);
+      await sequelize.query(`ALTER TABLE destinations ADD COLUMN IF NOT EXISTS price DECIMAL(10,2) NOT NULL DEFAULT 0;`);
       await destinationsModel.sync({ alter: true });
       await trashModel.sync({ alter: true });
 
       // Add/alter columns for destination reservations (safe, no ENUM cast issues)
       try { await sequelize.query(`ALTER TABLE reservations ALTER COLUMN id_package DROP NOT NULL;`); } catch (_) {}
       try { await sequelize.query(`ALTER TABLE reservations ADD COLUMN id_destination INTEGER;`); } catch (_) {}
+      try { await sequelize.query(`ALTER TABLE reservations ADD COLUMN travel_date DATE;`); } catch (_) {}
+      try { await sequelize.query(`ALTER TABLE reservations ADD COLUMN num_people INTEGER DEFAULT 2;`); } catch (_) {}
       console.log("✅ Conexión a la base de datos establecida");
       app.listen(port, () => {
         console.log(`🚀 Servidor ejecutándose en http://localhost:${port}`);

@@ -25,6 +25,15 @@ export const reservationsModel = sequelize.define(
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
     },
+    travel_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+    },
+    num_people: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 2,
+    },
     pay_state: {
       type: DataTypes.ENUM(
         "pending",
