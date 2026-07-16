@@ -1,5 +1,4 @@
 import express from "express";
-import rateLimit from "express-rate-limit";
 import multer from "multer";
 import {
   getAllReservations,
@@ -26,19 +25,9 @@ import {
   rejectReservationSchema,
   payAfterPreReservationSchema,
 } from "../validations/schemas.js";
+import { reservationQueryRateLimiter } from "../middleware/reservationLimit.middleware.js";
 
 const router = express.Router();
-
-const reservationQueryLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 10,
-  message: {
-    success: false,
-    message: "Demasiadas solicitudes. Intente de nuevo en un minuto.",
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -57,7 +46,7 @@ router.post(
 router.post("/pre-reservation", validateSchema(preReservationSchema), createPreReservation);
 router.post(
   "/query",
-  reservationQueryLimiter,
+  reservationQueryRateLimiter,
   validateSchema(reservationQuerySchema),
   queryReservations,
 );
