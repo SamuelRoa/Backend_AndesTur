@@ -13,11 +13,13 @@ import {
   
 } from "../middleware/auth.middleware.js";
 import { createStateSchema, updateStateSchema } from "../validations/schemas.js";
+import { cacheMiddleware } from "../middleware/index.js";
 
 const router = express.Router();
 
-router.get("/", authenticateToken, requirePermission("state:read"), getAllStates);
-router.get("/:id", authenticateToken, requirePermission("state:read"), getStateById);
+router.get("/", authenticateToken, requirePermission("state:read"), cacheMiddleware("states", 86400), getAllStates);
+router.get("/:id", authenticateToken, requirePermission("state:read"), cacheMiddleware("states", 86400), getStateById);
+
 router.post(
   "/",
   authenticateToken,

@@ -1,4 +1,5 @@
 import { StateModel } from "../models/state.models.js";
+import { deleteCachePattern } from "../config/redis.js";
 
 export const getAllStates = async (req, res) => {
   try {
@@ -37,6 +38,9 @@ export const getStateById = async (req, res) => {
 export const createState = async (req, res) => {
   try {
     const state = await StateModel.create(req.body);
+    deleteCachePattern("cache:states:*").catch((err) => {
+      console.error("Error al invalidar caché tras crear estado:", err.message);
+    });
     res.status(201).json({ success: true, data: state });
   } catch (error) {
     res.status(500).json({
@@ -61,6 +65,9 @@ export const updateState = async (req, res) => {
     }
 
     const updatedState = await StateModel.findByPk(id);
+    deleteCachePattern("cache:states:*").catch((err) => {
+      console.error("Error al invalidar caché tras actualizar estado:", err.message);
+    });
     res.json({ success: true, data: updatedState });
   } catch (error) {
     res.status(500).json({
@@ -84,6 +91,9 @@ export const deleteState = async (req, res) => {
         .json({ success: false, message: "Estado no encontrado" });
     }
 
+    deleteCachePattern("cache:states:*").catch((err) => {
+      console.error("Error al invalidar caché tras eliminar estado:", err.message);
+    });
     res.json({ success: true, message: "Estado eliminado" });
   } catch (error) {
     res.status(500).json({

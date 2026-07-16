@@ -2,6 +2,7 @@ import { destinationsModel } from "../models/destinations.models.js";
 import { verifyToken } from "../middleware/auth.middleware.js";
 import { getPaginationParams, getPaginationResponse } from "./pagination.js";
 import { moveToTrash } from "../utils/trash.helper.js";
+import { deleteCachePattern } from "../config/redis.js";
 
 export const getAllDestinations = async (req, res) => {
   try {
@@ -71,6 +72,9 @@ export const getDestinationById = async (req, res) => {
 export const createDestination = async (req, res) => {
   try {
     const destination = await destinationsModel.create(req.body);
+    deleteCachePattern("cache:destinations:*").catch((err) => {
+      console.error("Error al invalidar caché tras crear destino:", err.message);
+    });
     res.status(201).json({ success: true, data: destination });
   } catch (error) {
     res
@@ -97,6 +101,9 @@ export const updateDestination = async (req, res) => {
     }
 
     const updatedDestination = await destinationsModel.findByPk(id);
+    deleteCachePattern("cache:destinations:*").catch((err) => {
+      console.error("Error al invalidar caché tras actualizar destino:", err.message);
+    });
     res.json({ success: true, data: updatedDestination });
   } catch (error) {
     res
@@ -120,6 +127,9 @@ export const deleteDestination = async (req, res) => {
         .json({ success: false, message: "Destino no encontrado" });
     }
 
+    deleteCachePattern("cache:destinations:*").catch((err) => {
+      console.error("Error al invalidar caché tras eliminar destino:", err.message);
+    });
     res.json({ success: true, message: "Destino movido a la papelera" });
   } catch (error) {
     res

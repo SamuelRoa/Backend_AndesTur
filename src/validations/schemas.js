@@ -79,7 +79,8 @@ export const futureDateSchema = dateSchema.refine(
 
 // Validación de enums
 export const userStateEnum = z.enum(["active", "inactive", "blocked"]);
-export const staffTypeEnum = z.enum(["guide", "driver"]);
+export const staffTypeEnum = z.enum(["guide", "driver", "operator", "admin_staff", "other"]);
+export const employmentStatusEnum = z.enum(["active", "inactive", "on_leave"]);
 export const payMethodEnum = z.enum(["cash", "card", "zelle", "pago_movil", "digital_transfer", "paypal"]);
 export const payStateEnum = z.enum([
   "pending",
@@ -263,6 +264,17 @@ export const createStaffSchema = z.object({
   last_name: nameSchema,
   dni: dniSchema,
   type: staffTypeEnum,
+  phone: phoneSchema,
+  email: emailSchema.optional(),
+  address: z.string().max(500).trim().optional(),
+  birth_date: dateSchema.optional(),
+  position: z.string().max(100).trim().optional(),
+  emergency_contact: z.string().max(100).trim().optional(),
+  emergency_phone: phoneSchema,
+  hire_date: dateSchema.optional(),
+  salary: z.number().positive().optional(),
+  employment_status: employmentStatusEnum.optional(),
+  notes: z.string().max(2000).trim().optional(),
   id_user: idSchema.optional(),
 });
 

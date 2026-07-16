@@ -15,11 +15,13 @@ import {
   createDestinationSchema,
   updateDestinationSchema,
 } from "../validations/schemas.js";
+import { cacheMiddleware } from "../middleware/index.js";
 
 const router = express.Router();
 
-router.get("/", getAllDestinations);
-router.get("/:id", getDestinationById);
+router.get("/", cacheMiddleware("destinations", 1800), getAllDestinations);
+router.get("/:id", cacheMiddleware("destinations", 1800), getDestinationById);
+
 router.post(
   "/",
   authenticateToken,
