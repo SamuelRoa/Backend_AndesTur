@@ -13,11 +13,11 @@ export const CLOUDINARY_FOLDER = process.env.CLOUDINARY_FOLDER || "AndesTur";
 export const uploadBuffer = (buffer, options = {}) => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
-      { folder: CLOUDINARY_FOLDER, resource_type: "auto", ...options },
       (error, result) => {
         if (error) reject(error);
         else resolve(result);
       },
+      { folder: CLOUDINARY_FOLDER, resource_type: "auto", ...options },
     );
     uploadStream.end(buffer);
   });
