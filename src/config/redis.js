@@ -10,14 +10,24 @@ let client = null;
 if (redisUrl) {
   const options = {
     url: redisUrl,
+    socket: {
+      // Estrategia de reconexión: máximo 3 reintentos con backoff exponencial.
+      // Si falla 3 veces, se abandona y el sistema usa el fallback en memoria.
+      reconnectStrategy: (retries) => {
+        if (retries >= 3) {
+          console.warn("⚠️ Redis no disponible tras 3 intentos. Usando fallback en memoria.");
+          return new Error("Máximo de reintentos de Redis alcanzado");
+        }
+        // Backoff exponencial: 500ms, 1000ms, 2000ms
+        return Math.min(500 * Math.pow(2, retries), 2000);
+      },
+    },
   };
 
   // Render Redis key-value uses rediss:// (TLS secure protocol)
   if (redisUrl.startsWith("rediss://")) {
-    options.socket = {
-      tls: true,
-      rejectUnauthorized: false,
-    };
+    options.socket.tls = true;
+    options.socket.rejectUnauthorized = false;
   }
 
   client = createClient(options);
@@ -33,7 +43,10 @@ if (redisUrl) {
 
   client.on("error", (err) => {
     isReady = false;
-    console.error("⚠️ Error en el cliente de Redis:", err.message);
+    // Solo mostramos el error la primera vez que se detecta (no el spam de reintentos)
+    if (!err.message?.includes("Máximo de reintentos")) {
+      console.warn("⚠️ Error en el cliente de Redis:", err.message);
+    }
   });
 
   client.on("end", () => {
