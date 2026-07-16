@@ -5,12 +5,14 @@ import {
   createDestination,
   updateDestination,
   deleteDestination,
+  uploadDestinationImage,
 } from "../controllers/destinations.controller.js";
 import { validateSchema } from "../middleware/validation.middleware.js";
 import {
   authenticateToken,
   requirePermission,
 } from "../middleware/auth.middleware.js";
+import { uploadImage } from "../utils/upload.js";
 import {
   createDestinationSchema,
   updateDestinationSchema,
@@ -41,6 +43,14 @@ router.delete(
   authenticateToken,
   requirePermission("destinations:write"),
   deleteDestination,
+);
+
+router.post(
+  "/upload-image",
+  authenticateToken,
+  requirePermission("destinations:write"),
+  uploadImage.single("image"),
+  uploadDestinationImage,
 );
 
 export default router;

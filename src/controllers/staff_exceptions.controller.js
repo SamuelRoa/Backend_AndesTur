@@ -1,4 +1,5 @@
 import { StaffExceptionModel } from "../models/staff_schedule_exceptions.models.js";
+import { uploadBuffer, deleteByUrl } from "../utils/cloudinary.js";
 
 export const getExceptions = async (req, res) => {
   try {
@@ -22,6 +23,20 @@ export const createException = async (req, res) => {
       return res.status(400).json({ success: false, message: "Fecha y motivo son requeridos" });
     }
 
+    let attachmentPath = null;
+    let attachmentName = null;
+    let attachmentMime = null;
+
+    if (req.file) {
+      const result = await uploadBuffer(req.file.buffer, {
+        public_id: `exception_${id}_${Date.now()}`,
+        resource_type: "auto",
+      });
+      attachmentPath = result.secure_url;
+      attachmentName = req.file.originalname;
+      attachmentMime = req.file.mimetype;
+    }
+
     const exception = await StaffExceptionModel.create({
       id_staff: id,
       date,
@@ -29,9 +44,9 @@ export const createException = async (req, res) => {
       is_working_day: is_working_day === true,
       start_time: start_time || null,
       end_time: end_time || null,
-      attachment_path: req.file?.path || null,
-      attachment_name: req.file?.originalname || null,
-      attachment_mime: req.file?.mimetype || null,
+      attachment_path: attachmentPath,
+      attachment_name: attachmentName,
+      attachment_mime: attachmentMime,
       notes: notes || null,
     });
 
@@ -51,6 +66,10 @@ export const downloadExceptionAttachment = async (req, res) => {
     }
     if (!exception.attachment_path) {
       return res.status(404).json({ success: false, message: "Esta excepción no tiene archivo adjunto" });
+    }
+
+    if (exception.attachment_path?.startsWith("http")) {
+      return res.redirect(exception.attachment_path);
     }
 
     const fs = await import("fs");
@@ -73,11 +92,11 @@ export const deleteException = async (req, res) => {
       return res.status(404).json({ success: false, message: "Excepción no encontrada" });
     }
 
-    if (exception.attachment_path) {
-      const fs = await import("fs");
-      if (fs.existsSync(exception.attachment_path)) {
-        fs.unlinkSync(exception.attachment_path);
-      }
+    await deleteByUrl(exception.attachment_path);
+
+    const fs = await import("fs");
+    if (exception.attachment_path && !exception.attachment_path?.startsWith("http") && fs.existsSync(exception.attachment_path)) {
+      fs.unlinkSync(exception.attachment_path);
     }
 
     await exception.destroy();

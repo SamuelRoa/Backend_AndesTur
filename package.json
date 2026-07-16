@@ -5,11 +5,13 @@
     "dev": "nodemon src/server.js",
     "seed": "node src/seed.js",
     "test": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --runInBand --detectOpenHandles",
-    "send-report": "node src/scripts/sendWeeklyReport.js"
+    "send-report": "node src/scripts/sendWeeklyReport.js",
+    "migrate-cloudinary": "node src/scripts/migrateToCloudinary.js"
   },
   "dependencies": {
     "@emailjs/nodejs": "^5.0.2",
     "bcrypt": "^6.0.0",
+    "cloudinary": "^2.10.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "exceljs": "^4.4.0",

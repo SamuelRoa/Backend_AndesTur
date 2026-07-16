@@ -169,11 +169,26 @@ export const updateProfile = async (req, res) => {
     const allowedUpdates = ["username", "email", "password", "avatar"];
     const updateData = {};
 
-    allowedUpdates.forEach((field) => {
+    for (const field of allowedUpdates) {
       if (Object.prototype.hasOwnProperty.call(payload, field)) {
-        updateData[field] = payload[field];
+        if (field === "avatar" && payload[field] && payload[field].startsWith("data:")) {
+          const base64Data = payload[field].split(",")[1];
+          const buffer = Buffer.from(base64Data, "base64");
+          const { uploadBuffer } = await import("../utils/cloudinary.js");
+          try {
+            const result = await uploadBuffer(buffer, {
+              public_id: `avatar_${userId}`,
+              resource_type: "image",
+            });
+            updateData[field] = result.secure_url;
+          } catch {
+            updateData[field] = payload[field];
+          }
+        } else {
+          updateData[field] = payload[field];
+        }
       }
-    });
+    }
 
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({

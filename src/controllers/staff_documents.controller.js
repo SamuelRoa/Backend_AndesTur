@@ -1,10 +1,6 @@
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
 import { StaffDocumentsModel } from "../models/staff_documents.models.js";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { uploadBuffer, deleteByUrl } from "../utils/cloudinary.js";
+import { CLOUDINARY_FOLDER } from "../utils/cloudinary.js";
 
 export const getDocuments = async (req, res) => {
   try {
@@ -31,11 +27,16 @@ export const uploadDocument = async (req, res) => {
       return res.status(400).json({ success: false, message: "El tipo de documento es requerido" });
     }
 
+    const result = await uploadBuffer(req.file.buffer, {
+      public_id: `${id}_${Date.now()}`,
+      resource_type: "auto",
+    });
+
     const doc = await StaffDocumentsModel.create({
       id_staff: id,
       document_type,
       file_name: req.file.originalname,
-      file_path: req.file.path,
+      file_path: result.secure_url,
       mime_type: req.file.mimetype,
       file_size: req.file.size,
       notes: notes || null,
@@ -56,6 +57,11 @@ export const downloadDocument = async (req, res) => {
       return res.status(404).json({ success: false, message: "Documento no encontrado" });
     }
 
+    if (doc.file_path?.startsWith("http")) {
+      return res.redirect(doc.file_path);
+    }
+
+    const fs = await import("fs");
     if (!fs.existsSync(doc.file_path)) {
       return res.status(404).json({ success: false, message: "Archivo no encontrado en el servidor" });
     }
@@ -75,7 +81,10 @@ export const deleteDocument = async (req, res) => {
       return res.status(404).json({ success: false, message: "Documento no encontrado" });
     }
 
-    if (fs.existsSync(doc.file_path)) {
+    await deleteByUrl(doc.file_path);
+
+    const fs = await import("fs");
+    if (!doc.file_path?.startsWith("http") && fs.existsSync(doc.file_path)) {
       fs.unlinkSync(doc.file_path);
     }
 

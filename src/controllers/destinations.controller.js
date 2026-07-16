@@ -69,6 +69,22 @@ export const getDestinationById = async (req, res) => {
   }
 };
 
+export const uploadDestinationImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No se envió ninguna imagen" });
+    }
+    const { uploadBuffer } = await import("../utils/cloudinary.js");
+    const result = await uploadBuffer(req.file.buffer, {
+      public_id: `destination_${Date.now()}`,
+      resource_type: "image",
+    });
+    res.json({ success: true, data: { url: result.secure_url } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error subiendo imagen", error: error.message });
+  }
+};
+
 export const createDestination = async (req, res) => {
   try {
     const destination = await destinationsModel.create(req.body);
