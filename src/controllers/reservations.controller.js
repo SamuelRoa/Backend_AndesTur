@@ -153,7 +153,7 @@ export const updateReservation = async (req, res) => {
       sendCustomerValidationEmail(
         updatedReservation.Customer,
         updatedReservation,
-        updatedReservation.Package,
+        updatedReservation.Package || updatedReservation.Destination,
       ).catch((err) => {
         console.error(
           "Error al enviar correo de validación al cliente:",
@@ -199,7 +199,7 @@ export const rejectReservation = async (req, res) => {
     const { reason } = req.body;
 
     const reservation = await reservationsModel.findByPk(id, {
-      include: [{ model: customersModel }, { model: packagesModel }],
+      include: [{ model: customersModel }, { model: packagesModel }, { model: destinationsModel }],
     });
 
     if (!reservation) {
@@ -223,7 +223,7 @@ export const rejectReservation = async (req, res) => {
       sendRejectionEmail(
         reservation.Customer,
         reservation,
-        reservation.Package,
+        reservation.Package || reservation.Destination,
         reason,
       ).catch((err) => {
         console.error("Error al enviar correo de rechazo:", err.message);
@@ -594,7 +594,7 @@ export const payAfterPreReservation = async (req, res) => {
         sendPaymentConfirmationEmail(
           customer,
           reservation,
-          packageData,
+          packageData || destinationData,
           header,
           simulation,
         ).catch((err) => {

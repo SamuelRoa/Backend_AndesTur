@@ -20,7 +20,7 @@ const wrapper = (content) => `
 export const sendAdminPreReservationEmail = async (
   customer,
   reservation,
-  packageData,
+  serviceData,
 ) => {
   const adminEmail = process.env.REPORT_TO_EMAIL || process.env.EMAIL_USER;
   if (!adminEmail) {
@@ -30,7 +30,8 @@ export const sendAdminPreReservationEmail = async (
     return;
   }
 
-  const packageName = packageData?.name || `Paquete #${reservation.id_package}`;
+  const isDest = serviceData && !serviceData.departure_date;
+  const serviceName = serviceData?.name || (isDest ? `Destino #${reservation.id_destination}` : `Paquete #${reservation.id_package}`);
 
   const content = `
     <h2 style="color: #1B4332; border-bottom: 2px solid #C9954B; padding-bottom: 10px;">Nueva Pre-reserva Registrada</h2>
@@ -44,7 +45,7 @@ export const sendAdminPreReservationEmail = async (
     <h3 style="color: #C9954B; margin-top: 20px;">Reserva</h3>
     <table style="width: 100%; border-collapse: collapse; color: #2D2D2D;">
       <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; width: 40%; font-weight: bold;">Reserva ID:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${reservation.id_reservation}</td></tr>
-      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">Paquete:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${packageName}</td></tr>
+      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">${isDest ? "Destino" : "Paquete"}:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${serviceName}</td></tr>
       <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">Fecha:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${new Date(reservation.reservation_date).toLocaleString("es-CO", { timeZone: "America/Bogota" })}</td></tr>
     </table>
     <div style="background: #F5EDE0; padding: 15px; border-left: 4px solid #C9954B; margin-top: 20px; border-radius: 4px;">
@@ -100,22 +101,28 @@ export const sendAdminPreReservationEmail = async (
 export const sendCustomerValidationEmail = async (
   customer,
   reservation,
-  packageData,
+  serviceData,
 ) => {
-  const packageName = packageData?.name || `Paquete #${reservation.id_package}`;
-  const priceFormatted = packageData
-    ? Number(packageData.price).toLocaleString("es-CO", {
+  const isDest = serviceData && !serviceData.departure_date;
+  const serviceName = serviceData?.name || (isDest ? `Destino #${reservation.id_destination}` : `Paquete #${reservation.id_package}`);
+  const priceFormatted = serviceData
+    ? Number(serviceData.price).toLocaleString("es-CO", {
         style: "currency",
         currency: "COP",
       })
     : "Ver detalles en la web";
-  const departureDate = packageData?.departure_date
-    ? new Date(packageData.departure_date).toLocaleDateString("es-CO", {
+  const departureDate = !isDest && serviceData?.departure_date
+    ? new Date(serviceData.departure_date).toLocaleDateString("es-CO", {
         dateStyle: "long",
       })
     : "";
-  const returnDate = packageData?.return_date
-    ? new Date(packageData.return_date).toLocaleDateString("es-CO", {
+  const returnDate = !isDest && serviceData?.return_date
+    ? new Date(serviceData.return_date).toLocaleDateString("es-CO", {
+        dateStyle: "long",
+      })
+    : "";
+  const travelDate = isDest && reservation.travel_date
+    ? new Date(reservation.travel_date).toLocaleDateString("es-CO", {
         dateStyle: "long",
       })
     : "";
@@ -127,9 +134,14 @@ export const sendCustomerValidationEmail = async (
     <h3 style="color: #C9954B; border-bottom: 2px solid #C9954B; padding-bottom: 10px; margin-top: 25px;">Detalles de tu Reserva</h3>
     <table style="width: 100%; border-collapse: collapse; color: #2D2D2D;">
       <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; width: 40%; font-weight: bold;">Reserva ID:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${reservation.id_reservation}</td></tr>
-      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">Paquete:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; color: #2D6A4F; font-weight: bold;">${packageName}</td></tr>
+      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">${isDest ? "Destino" : "Paquete"}:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; color: #2D6A4F; font-weight: bold;">${serviceName}</td></tr>
+      ${!isDest ? `
       <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">Salida:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${departureDate}</td></tr>
       <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">Retorno:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${returnDate}</td></tr>
+      ` : `
+      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">Fecha de viaje:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${travelDate}</td></tr>
+      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">Viajeros:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${reservation.num_people || 2}</td></tr>
+      `}
       <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">Total:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold; color: #C9954B;">${priceFormatted}</td></tr>
     </table>
     <div style="background: #F5EDE0; padding: 15px; border-left: 4px solid #C9954B; margin-top: 20px; border-radius: 4px;">
@@ -153,10 +165,11 @@ export const sendCustomerValidationEmail = async (
 export const sendRejectionEmail = async (
   customer,
   reservation,
-  packageData,
+  serviceData,
   reason,
 ) => {
-  const packageName = packageData?.name || `Paquete #${reservation.id_package}`;
+  const isDest = serviceData && !serviceData.departure_date;
+  const serviceName = serviceData?.name || (isDest ? `Destino #${reservation.id_destination}` : `Paquete #${reservation.id_package}`);
 
   const content = `
     <h2 style="color: #9B2226;">Hola ${customer.name},</h2>
@@ -164,7 +177,7 @@ export const sendRejectionEmail = async (
     <h3 style="color: #9B2226; border-bottom: 2px solid #9B2226; padding-bottom: 10px; margin-top: 25px;">Detalles</h3>
     <table style="width: 100%; border-collapse: collapse; color: #2D2D2D;">
       <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; width: 40%; font-weight: bold;">Reserva ID:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${reservation.id_reservation}</td></tr>
-      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">Paquete:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${packageName}</td></tr>
+      <tr><td style="padding: 8px; border-bottom: 1px solid #E8D5B7; font-weight: bold;">${isDest ? "Destino" : "Paquete"}:</td><td style="padding: 8px; border-bottom: 1px solid #E8D5B7;">${serviceName}</td></tr>
     </table>
     <div style="background: #FFF5F5; padding: 15px; border-left: 4px solid #9B2226; margin-top: 20px; border-radius: 4px;">
       <p style="margin: 0; color: #9B2226; font-size: 14px;"><strong>Motivo:</strong> ${reason || "No se especificó un motivo."}</p>
@@ -232,13 +245,14 @@ function formatDateTimeLong(iso) {
   });
 }
 
-const generateInvoiceHTML = (customer, reservation, packageData, paymentHeader, simulation) => {
+const generateInvoiceHTML = (customer, reservation, serviceData, paymentHeader, simulation) => {
   const invoiceNumber = `FAC-${String(reservation.id_reservation).padStart(6, "0")}-${String(paymentHeader.id_payment_header).padStart(4, "0")}`;
   const methodLabel = PAYMENT_METHOD_LABELS[simulation.payment_method] || simulation.payment_method;
-  const subtotal = Number(packageData?.price || 0);
+  const subtotal = Number(serviceData?.price || 0);
   const taxRate = 0;
   const taxAmount = subtotal * taxRate;
   const total = subtotal + taxAmount;
+  const isDestination = serviceData && !serviceData.departure_date;
 
   return `
 <div style="background: #FAFAF7; padding: 20px; font-family: 'Courier New', Courier, monospace;">
@@ -302,12 +316,14 @@ const generateInvoiceHTML = (customer, reservation, packageData, paymentHeader, 
       <tbody>
         <tr style="border-bottom: 1px solid #E8D5B7;">
           <td style="padding: 12px 10px;">
-            <p style="margin: 0; font-weight: bold; color: #1B4332;">${packageData?.name || `Paquete Turístico #${reservation.id_package}`}</p>
+            <p style="margin: 0; font-weight: bold; color: #1B4332;">${serviceData?.name || (isDestination ? `Destino Turístico #${reservation.id_destination}` : `Paquete Turístico #${reservation.id_package}`)}</p>
             <p style="margin: 4px 0 0; color: #666; font-size: 11px;">
-              ${packageData?.departure_date ? `Salida: ${formatDateLong(packageData.departure_date)}` : ""}
-              ${packageData?.return_date ? ` → Retorno: ${formatDateLong(packageData.return_date)}` : ""}
+              ${!isDestination && serviceData?.departure_date ? `Salida: ${formatDateLong(serviceData.departure_date)}` : ""}
+              ${!isDestination && serviceData?.return_date ? ` → Retorno: ${formatDateLong(serviceData.return_date)}` : ""}
+              ${isDestination && reservation.travel_date ? `Fecha de viaje: ${formatDateLong(reservation.travel_date)}` : ""}
+              ${isDestination && reservation.num_people ? `${reservation.num_people} viajero(s)` : ""}
             </p>
-            ${packageData?.description ? `<p style="margin: 4px 0 0; color: #666; font-size: 11px;">${packageData.description.slice(0, 100)}</p>` : ""}
+            ${serviceData?.description ? `<p style="margin: 4px 0 0; color: #666; font-size: 11px;">${serviceData.description.slice(0, 120)}</p>` : ""}
           </td>
           <td style="padding: 12px 10px; text-align: center;">1</td>
           <td style="padding: 12px 10px; text-align: right;">${formatCurrency(subtotal)}</td>
@@ -362,21 +378,22 @@ const generateInvoiceHTML = (customer, reservation, packageData, paymentHeader, 
 export const sendPaymentConfirmationEmail = async (
   customer,
   reservation,
-  packageData,
+  serviceData,
   paymentHeader,
   simulation,
 ) => {
-  const packageName = packageData?.name || `Paquete #${reservation.id_package}`;
+  const isDest = serviceData && !serviceData.departure_date;
+  const serviceName = serviceData?.name || (isDest ? `Destino #${reservation.id_destination}` : `Paquete #${reservation.id_package}`);
   const methodLabel = PAYMENT_METHOD_LABELS[simulation.payment_method] || simulation.payment_method;
 
-  const invoiceHTML = generateInvoiceHTML(customer, reservation, packageData, paymentHeader, simulation);
+  const invoiceHTML = generateInvoiceHTML(customer, reservation, serviceData, paymentHeader, simulation);
 
   const content = `
     <h2 style="color: #1B4332;">¡Pago recibido, ${customer.name}!</h2>
     <p style="color: #2D6A4F; font-size: 16px;">Hemos procesado tu pago exitosamente.</p>
     <div style="background: #E8F5E9; border: 1px solid #4CAF50; border-radius: 6px; padding: 15px; margin: 15px 0; text-align: center;">
       <p style="margin: 0; font-size: 14px; color: #2E7D32;"><strong>Reserva #${reservation.id_reservation}</strong></p>
-      <p style="margin: 4px 0; font-size: 13px; color: #2E7D32;">${packageName}</p>
+      <p style="margin: 4px 0; font-size: 13px; color: #2E7D32;">${serviceName}</p>
       <p style="margin: 4px 0; font-size: 13px; color: #C9954B; font-weight: bold;">${methodLabel} — ${simulation.reference}</p>
       <p style="margin: 4px 0; font-size: 12px; color: #2E7D32;">Monto: ${Number(paymentHeader.total_amount).toFixed(2)} USD</p>
     </div>

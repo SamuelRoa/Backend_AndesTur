@@ -196,12 +196,15 @@ export const registerManualPayment = async (req, res) => {
     // Send confirmation email if paid in full
     if (updatedState === "paid") {
       const customer = await customersModel.findByPk(reservation.id_customer);
-      const packageData = await packagesModel.findByPk(reservation.id_package);
+      let serviceData = await packagesModel.findByPk(reservation.id_package);
+      if (!serviceData && reservation.id_destination) {
+        serviceData = await destinationsModel.findByPk(reservation.id_destination);
+      }
       if (customer?.email) {
         sendPaymentConfirmationEmail(
           customer,
           reservation,
-          packageData,
+          serviceData,
           header,
           { reference, payment_method: pay_method, approved: true, status: "approved" },
         ).catch((err) => {

@@ -36,7 +36,9 @@ export const descriptionSchema = z
 export const phoneSchema = z
   .string()
   .regex(/^\+?[\d\s().-]{10,}$/, "Número de teléfono inválido")
-  .optional();
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => (v === "" ? undefined : v));
 
 // Validación de DNI (documento de identidad)
 export const dniSchema = z
