@@ -8,12 +8,13 @@ import {
   recoverPassword,
 } from "../controllers/auth.controller.js";
 import { authenticateToken } from "../middleware/auth.middleware.js";
+import { loginRateLimiter } from "../middleware/loginLimit.middleware.js";
 
 const router = express.Router();
 
 // Rutas públicas
 router.post("/register", register);
-router.post("/login", login);
+router.post("/login", loginRateLimiter, login);
 router.post("/forgot-password", recoverPassword);
 
 // Rutas protegidas
