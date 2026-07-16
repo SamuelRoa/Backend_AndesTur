@@ -191,6 +191,9 @@ export const createDestinationSchema = z.object({
   description: z
     .string()
     .min(5, "Descripción debe tener al menos 5 caracteres"),
+  price: z
+    .number()
+    .positive("El precio debe ser mayor a 0"),
   activo: z.boolean().optional(),
   image_url: z.string().url("URL de imagen inválida").nullable().optional(),
 });
@@ -368,6 +371,13 @@ export const preReservationSchema = z.object({
     .optional(),
   phone_number: phoneSchema,
   email: emailSchema,
+  travel_date: z.coerce.date().refine((d) => d >= new Date(new Date().toDateString()), {
+    message: "La fecha de viaje debe ser hoy o en el futuro",
+  }).optional(),
+  num_people: z.preprocess(
+    (v) => (v === undefined || v === null || v === '' ? undefined : Number(v)),
+    z.number().int().positive("Número de personas debe ser positivo").min(1, "Mínimo 1 persona").max(100, "Máximo 100 personas").optional(),
+  ),
   id_package: z.preprocess(
     (v) => (v === undefined || v === null || v === '' ? undefined : Number(v)),
     z.number().int().positive("id_package debe ser un entero positivo").optional(),

@@ -292,6 +292,8 @@ export const queryReservations = async (req, res) => {
       pay_state: r.pay_state,
       id_package: r.id_package,
       id_destination: r.id_destination,
+      travel_date: r.travel_date,
+      num_people: r.num_people,
       package: r.Package
         ? {
             name: r.Package.name,
@@ -337,7 +339,7 @@ export const queryReservations = async (req, res) => {
 
 export const createPreReservation = async (req, res) => {
   try {
-    const { dni, name, lastname, phone_number, email, id_package, id_destination } = req.body;
+    const { dni, name, lastname, phone_number, email, id_package, id_destination, travel_date, num_people } = req.body;
 
     let packageData = null;
     let destinationData = null;
@@ -395,6 +397,8 @@ export const createPreReservation = async (req, res) => {
     const reservationData = { id_customer: customer.id_customer, pay_state: "pending", reservation_date: new Date() };
     if (id_package) reservationData.id_package = id_package;
     if (id_destination) reservationData.id_destination = id_destination;
+    if (travel_date) reservationData.travel_date = travel_date;
+    if (num_people) reservationData.num_people = num_people;
     const reservation = await reservationsModel.create(reservationData);
 
     // 4. Enviar notificación por correo al administrador asíncronamente

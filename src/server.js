@@ -38,7 +38,6 @@ const startServer = async () => {
   try {
     if (process.env.NODE_ENV !== "test") {
       await sequelize.authenticate();
-
       // ── Staff migration: STRING instead of ENUM to avoid cast issues ──
       try { await sequelize.query(`ALTER TABLE staff ALTER COLUMN type TYPE VARCHAR(50) USING type::text;`); } catch (_) {}
       try { await sequelize.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS phone VARCHAR(20);`); } catch (_) {}
@@ -53,6 +52,7 @@ const startServer = async () => {
       try { await sequelize.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS employment_status VARCHAR(20) DEFAULT 'active';`); } catch (_) {}
       try { await sequelize.query(`ALTER TABLE staff ADD COLUMN IF NOT EXISTS notes TEXT;`); } catch (_) {}
       try { await sequelize.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT;`); } catch (_) {}
+      try { await sequelize.query(`ALTER TABLE destinations ADD COLUMN IF NOT EXISTS price DECIMAL(10,2) NOT NULL DEFAULT 0;`); } catch (_) {}
 
       // ── Sync new tables ──
       await destinationsModel.sync({ alter: true });
@@ -64,6 +64,8 @@ const startServer = async () => {
       // Add/alter columns for destination reservations
       try { await sequelize.query(`ALTER TABLE reservations ALTER COLUMN id_package DROP NOT NULL;`); } catch (_) {}
       try { await sequelize.query(`ALTER TABLE reservations ADD COLUMN IF NOT EXISTS id_destination INTEGER;`); } catch (_) {}
+      try { await sequelize.query(`ALTER TABLE reservations ADD COLUMN IF NOT EXISTS travel_date DATE;`); } catch (_) {}
+      try { await sequelize.query(`ALTER TABLE reservations ADD COLUMN IF NOT EXISTS num_people INTEGER DEFAULT 2;`); } catch (_) {}
       console.log("✅ Conexión a la base de datos establecida");
       app.listen(port, () => {
         console.log(`🚀 Servidor ejecutándose en http://localhost:${port}`);
