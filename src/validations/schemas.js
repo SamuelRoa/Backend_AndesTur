@@ -252,8 +252,8 @@ export const createPackageSchema = z
 export const updatePackageSchema = z.object({
   name: nameSchema.optional(),
   description: descriptionSchema.optional(),
-  departure_date: futureDateSchema.optional(),
-  return_date: futureDateSchema.optional(),
+  departure_date: dateSchema.optional(),
+  return_date: dateSchema.optional(),
   price: priceSchema.optional(),
   id_vehicle: idSchema.optional(),
   available_places: z
