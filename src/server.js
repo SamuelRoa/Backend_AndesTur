@@ -1,4 +1,4 @@
-﻿import express from "express";
+import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -77,6 +77,8 @@ const startServer = async () => {
         startWeeklyReportTask();
         const { startTrashCleanupTask } = await import('./tasks/trashCleanup.task.js');
         startTrashCleanupTask();
+        const { startExpireReservationsTask } = await import('./tasks/expireReservations.task.js');
+        startExpireReservationsTask();
       } catch (err) {
         console.error('No se pudo iniciar tareas programadas:', err.message);
       }

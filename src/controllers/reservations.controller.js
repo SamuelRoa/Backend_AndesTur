@@ -14,6 +14,7 @@ import {
 } from "../services/email.service.js";
 import { simulatePayment } from "../services/paymentSimulator.service.js";
 import { getPaginationParams, getPaginationResponse } from "./pagination.js";
+import { expirePastReservations } from "../utils/reservationExpiry.js";
 
 function mapPayMethod(paymentMethod) {
   switch (paymentMethod) {
@@ -28,6 +29,7 @@ function mapPayMethod(paymentMethod) {
 
 export const getAllReservations = async (req, res) => {
   try {
+    await expirePastReservations();
     const { pay_state, id_destination } = req.query;
 
     if (req.query.all === 'true') {
@@ -81,6 +83,7 @@ export const getAllReservations = async (req, res) => {
 
 export const getReservationById = async (req, res) => {
   try {
+    await expirePastReservations();
     const { id } = req.params;
     const reservation = await reservationsModel.findByPk(id);
 
@@ -115,6 +118,7 @@ export const createReservation = async (req, res) => {
 
 export const updateReservation = async (req, res) => {
   try {
+    await expirePastReservations();
     const { id } = req.params;
 
     // Obtener la reserva actual incluyendo cliente y paquete antes de actualizar
@@ -126,6 +130,18 @@ export const updateReservation = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "Reservación no encontrada" });
+    }
+
+    // Bloquear edición si la reserva está expirada o su fecha de viaje ya pasó
+    const todayStr = new Date().toISOString().split("T")[0];
+    if (
+      reservationBefore.pay_state === "expired" ||
+      (reservationBefore.travel_date && reservationBefore.travel_date < todayStr)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "No se pueden editar reservaciones expiradas o con fechas de viaje pasadas",
+      });
     }
 
     const [updated] = await reservationsModel.update(req.body, {
@@ -195,6 +211,7 @@ export const deleteReservation = async (req, res) => {
 
 export const rejectReservation = async (req, res) => {
   try {
+    await expirePastReservations();
     const { id } = req.params;
     const { reason } = req.body;
 
@@ -206,6 +223,17 @@ export const rejectReservation = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Reservación no encontrada",
+      });
+    }
+
+    const todayStr = new Date().toISOString().split("T")[0];
+    if (
+      reservation.pay_state === "expired" ||
+      (reservation.travel_date && reservation.travel_date < todayStr)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "No se pueden rechazar reservaciones expiradas o con fechas de viaje pasadas",
       });
     }
 
@@ -247,6 +275,7 @@ export const rejectReservation = async (req, res) => {
 
 export const queryReservations = async (req, res) => {
   try {
+    await expirePastReservations();
     const { email, dni } = req.body;
 
     const customer = await customersModel.findOne({
@@ -459,6 +488,7 @@ const AGENCY_BANK_INFO = {
 
 export const payAfterPreReservation = async (req, res) => {
   try {
+    await expirePastReservations();
     const { id } = req.params;
     const body = req.body || {};
     const receiptFile = req.file || null;
@@ -509,6 +539,17 @@ export const payAfterPreReservation = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Reserva no encontrada",
+      });
+    }
+
+    const todayStr = new Date().toISOString().split("T")[0];
+    if (
+      reservation.pay_state === "expired" ||
+      (reservation.travel_date && reservation.travel_date < todayStr)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Esta reserva ya no está disponible para pago porque su fecha de viaje ha pasado",
       });
     }
 
